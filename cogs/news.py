@@ -29,6 +29,7 @@ from config import (
     AI_KEYWORDS,
     CATEGORY_COLORS,
     FIRST_RUN_MAX_PER_FEED,
+    MAX_NEWS_AGE_HOURS,
     ChannelNewsConfig,
     FeedSource,
     FOOTER_TEXT
