@@ -1,0 +1,632 @@
+[
+  {
+    "id": 1,
+    "topic": "AI",
+    "question": "Which AI coding companion do you use or prefer the most?",
+    "options": ["Cursor", "GitHub Copilot", "Claude Code / CLI", "Supermaven / Windsurf"]
+  },
+  {
+    "id": 2,
+    "topic": "AI",
+    "question": "Which frontier LLM delivers the highest quality code generation today?",
+    "options": ["Claude 3.7 / 3.5 Sonnet", "ChatGPT (GPT-4o / o3)", "DeepSeek V3 / R1", "Gemini 2.5 / 1.5 Pro"]
+  },
+  {
+    "id": 3,
+    "topic": "AI",
+    "question": "What is your stance on running local open-source LLMs (Ollama, LM Studio)?",
+    "options": ["Daily driver for privacy & offline", "Experiment occasionally", "Cloud APIs are far superior", "Haven't tried yet"]
+  },
+  {
+    "id": 4,
+    "topic": "AI",
+    "question": "How will autonomous AI coding agents impact junior developer hiring in 5 years?",
+    "options": ["Fewer junior roles, higher bar", "More software built, net increase", "Shift to AI supervisor roles", "Little long-term change"]
+  },
+  {
+    "id": 5,
+    "topic": "AI",
+    "question": "Which technique do you rely on most for enhancing LLM knowledge?",
+    "options": ["Retrieval-Augmented Generation (RAG)", "Few-shot in-context prompting", "Fine-tuning weights", "System prompt engineering"]
+  },
+  {
+    "id": 6,
+    "topic": "Languages",
+    "question": "If you had to pick one language for backend services for the next 5 years:",
+    "options": ["Go", "Rust", "Python", "TypeScript (Node/Bun)"]
+  },
+  {
+    "id": 7,
+    "topic": "Languages",
+    "question": "Rust vs Go: Where does your heart lie?",
+    "options": ["Rust (Memory safety & zero cost)", "Go (Simplicity & fast concurrency)", "Both have their place", "Neither (Prefer Python/Java)"]
+  },
+  {
+    "id": 8,
+    "topic": "Languages",
+    "question": "TypeScript vs Plain JavaScript for quick prototypes:",
+    "options": ["Always TypeScript", "Plain JS for speed, TS later", "JSDoc with type checking", "TypeScript is too verbose for MVPs"]
+  },
+  {
+    "id": 9,
+    "topic": "Languages",
+    "question": "Python typing: Do you strictly use type hints in your codebases?",
+    "options": ["Strictly enforced (mypy/pyright)", "Loose hints on public APIs", "Rarely use them", "Dynamic is best"]
+  },
+  {
+    "id": 10,
+    "topic": "Languages",
+    "question": "Which modern systems language will replace C/C++ in new projects?",
+    "options": ["Rust", "Zig", "C++26 with safety profiles", "C/C++ will never be replaced"]
+  },
+  {
+    "id": 11,
+    "topic": "Web Dev",
+    "question": "Which frontend framework/library do you enjoy building with most?",
+    "options": ["React / Next.js", "Vue / Nuxt", "Svelte / SvelteKit", "Angular"]
+  },
+  {
+    "id": 12,
+    "topic": "Web Dev",
+    "question": "Tailwind CSS vs Semantic / Vanilla CSS modules:",
+    "options": ["Tailwind all day", "CSS Modules / Sass", "Emotion / Styled Components", "Plain modern CSS"]
+  },
+  {
+    "id": 13,
+    "topic": "Web Dev",
+    "question": "JavaScript Runtime: What is your preferred environment for backend TS?",
+    "options": ["Node.js (LTS)", "Bun", "Deno", "Cloudflare Workers / V8 Edge"]
+  },
+  {
+    "id": 14,
+    "topic": "Web Dev",
+    "question": "State management in React apps in 2026:",
+    "options": ["Zustand / Jotai", "TanStack Query + URL state", "Redux Toolkit", "React Context"]
+  },
+  {
+    "id": 15,
+    "topic": "Web Dev",
+    "question": "Server-Side Rendering (SSR) vs Single Page Applications (SPA):",
+    "options": ["Full SSR / Server Components", "Pure SPA with client routing", "Hybrid / Static Site Generation (SSG)", "Island architecture (Astro)"]
+  },
+  {
+    "id": 16,
+    "topic": "Databases",
+    "question": "What is your default relational database of choice?",
+    "options": ["PostgreSQL", "MySQL / MariaDB", "SQLite", "CockroachDB / Distributed"]
+  },
+  {
+    "id": 17,
+    "topic": "Databases",
+    "question": "SQLite in production for small-to-medium web services:",
+    "options": ["Massively underrated & fast", "Good for reads, risky for writes", "Only for mobile / embedded", "Turso / LibSQL distributed"]
+  },
+  {
+    "id": 18,
+    "topic": "Databases",
+    "question": "How do you prefer querying your relational database?",
+    "options": ["Raw SQL / sqlc", "Prisma / Drizzle", "SQLAlchemy / Django ORM", "Query builders (Knex / Kysely)"]
+  },
+  {
+    "id": 19,
+    "topic": "Databases",
+    "question": "Which caching and in-memory store do you prefer?",
+    "options": ["Redis", "Valkey", "Dragonfly", "Memcached"]
+  },
+  {
+    "id": 20,
+    "topic": "Databases",
+    "question": "NoSQL document stores in modern production stacks:",
+    "options": ["MongoDB is still great", "PostgreSQL JSONB replaced NoSQL", "DynamoDB / Cosmos DB", "Avoid document stores entirely"]
+  },
+  {
+    "id": 21,
+    "topic": "DevOps",
+    "question": "Containerization tooling on your local development machine:",
+    "options": ["Docker Desktop", "OrbStack", "Podman", "Colima / Finch"]
+  },
+  {
+    "id": 22,
+    "topic": "DevOps",
+    "question": "Kubernetes: When should a team adopt it?",
+    "options": ["Only when scaling demands it", "From day one if cloud native", "PaaS (Fly.io/Render) over K8s", "Never if you can avoid it"]
+  },
+  {
+    "id": 23,
+    "topic": "DevOps",
+    "question": "Infrastructure as Code (IaC) tool of choice:",
+    "options": ["Terraform / OpenTofu", "Pulumi (code-first)", "Ansible", "Cloud-native (CDK / Bicep)"]
+  },
+  {
+    "id": 24,
+    "topic": "DevOps",
+    "question": "Continuous Integration (CI) platform preference:",
+    "options": ["GitHub Actions", "GitLab CI", "CircleCI", "ArgoCD / Tekton"]
+  },
+  {
+    "id": 25,
+    "topic": "DevOps",
+    "question": "Monorepo vs Polyrepo for multi-service architectures:",
+    "options": ["Monorepo (Turborepo / Nx)", "Polyrepo (Separate git repos)", "Monolith repo first", "Micro-frontends & polyrepo"]
+  },
+  {
+    "id": 26,
+    "topic": "Tools",
+    "question": "Primary code editor / IDE for daily work:",
+    "options": ["VS Code", "JetBrains IDEs (IntelliJ, PyCharm)", "Neovim / Vim", "Cursor / Zed"]
+  },
+  {
+    "id": 27,
+    "topic": "Tools",
+    "question": "Terminal shell of choice:",
+    "options": ["Zsh (Oh My Zsh / Starship)", "Fish", "Bash", "PowerShell 7 / Nushell"]
+  },
+  {
+    "id": 28,
+    "topic": "Tools",
+    "question": "Git CLI vs Git GUI tools:",
+    "options": ["100% Terminal CLI", "GitKraken / Tower / Fork", "VS Code built-in Git", "LazyGit / TUI"]
+  },
+  {
+    "id": 29,
+    "topic": "Tools",
+    "question": "API testing and debugging tool:",
+    "options": ["Postman", "Insomnia", "Bruno / HTTPie", "cURL in terminal"]
+  },
+  {
+    "id": 30,
+    "topic": "Tools",
+    "question": "Package manager for Node.js projects:",
+    "options": ["pnpm", "npm", "yarn", "bun"]
+  },
+  {
+    "id": 31,
+    "topic": "Career",
+    "question": "Ideal work arrangement for software engineers:",
+    "options": ["100% Remote (Async-first)", "Hybrid (2-3 days in office)", "Full Office (In-person)", "Work from anywhere / Nomadic"]
+  },
+  {
+    "id": 32,
+    "topic": "Career",
+    "question": "What is the most effective way to level up as a software engineer?",
+    "options": ["Building end-to-end side projects", "Reading open source codebases", "Mentorship & code reviews at work", "Technical books & deep dives"]
+  },
+  {
+    "id": 33,
+    "topic": "Career",
+    "question": "The 4-day work week (32 hours) for tech teams:",
+    "options": ["Sign me up, productivity increases", "Sounds great but hard to coordinate", "Prefer 5 flexible days", "Startups need 6 days"]
+  },
+  {
+    "id": 34,
+    "topic": "Career",
+    "question": "Would you rather be an Individual Contributor (Staff/Principal) or Engineering Manager?",
+    "options": ["Staff/Principal IC forever", "Engineering Manager / Director", "Lead role (50% code, 50% people)", "Founding CTO / Solo founder"]
+  },
+  {
+    "id": 35,
+    "topic": "Career",
+    "question": "How do you feel about LeetCode-style technical interviews in 2026?",
+    "options": ["Outdated; use practical projects", "Flawed but an objective filter", "System design & AI pairing is better", "Necessary evil for big tech"]
+  },
+  {
+    "id": 36,
+    "topic": "Debates",
+    "question": "Tabs vs Spaces for code indentation:",
+    "options": ["2 Spaces", "4 Spaces", "Tabs (Accessibility!)", "Whatever prettier enforces"]
+  },
+  {
+    "id": 37,
+    "topic": "Debates",
+    "question": "Dark Mode vs Light Mode in your IDE and OS:",
+    "options": ["Dark Mode exclusively", "Light Mode (Better daytime contrast)", "Auto switches with sunlight", "High contrast / Cyberpunk themes"]
+  },
+  {
+    "id": 38,
+    "topic": "Debates",
+    "question": "Git workflow: Merge commits vs Rebase & Squash:",
+    "options": ["Rebase & Squash (Clean linear history)", "Merge commits (Preserve true history)", "Fast-forward merge only", "Whatever the team default is"]
+  },
+  {
+    "id": 39,
+    "topic": "Debates",
+    "question": "Comments in code:",
+    "options": ["Code should be self-documenting", "Explain 'Why', not 'What'", "Comment everything thoroughly", "Docstrings and type signatures only"]
+  },
+  {
+    "id": 40,
+    "topic": "Debates",
+    "question": "Microservices vs Modular Monolith for a new greenfield project:",
+    "options": ["Modular Monolith first", "Microservices from day one", "Serverless lambda functions", "Actor-based / Event-driven"]
+  },
+  {
+    "id": 41,
+    "topic": "Memes",
+    "question": "Deploying code to production on Friday at 4:30 PM:",
+    "options": ["Never! Read-only Fridays", "If tests pass and CI is green, ship it!", "Only if I want weekend adrenaline", "Automated rollbacks save lives"]
+  },
+  {
+    "id": 42,
+    "topic": "Memes",
+    "question": "Developer fuel of choice during crunch time:",
+    "options": ["Espresso / Black Coffee", "Energy Drinks (Monster/Red Bull)", "Matcha / Green Tea", "Pure hydration (Water & Electrolytes)"]
+  },
+  {
+    "id": 43,
+    "topic": "Memes",
+    "question": "How long do you stare at a bug before realizing it was a typo?",
+    "options": ["5 minutes", "30 minutes of existential crisis", "2 hours, then rubber duck catches it", "git diff shows it immediately"]
+  },
+  {
+    "id": 44,
+    "topic": "Memes",
+    "question": "Your commit messages usually look like:",
+    "options": ["feat(auth): semantic and structured", "'fix bug' / 'wip' / 'update'", "Long detailed explanatory essays", "emoji-only :fire: :bug:"]
+  },
+  {
+    "id": 45,
+    "topic": "Memes",
+    "question": "'It works on my machine' response:",
+    "options": ["'Then we'll ship your machine!'", "Docker solves this completely", "'Did you clear cache & restart?'", "'Works in prod too'"]
+  },
+  {
+    "id": 46,
+    "topic": "Cybersecurity",
+    "question": "Authentication strategy for modern consumer SaaS:",
+    "options": ["Passkeys / WebAuthn (Passwordless)", "OAuth (Google / GitHub login)", "Magic Link via Email", "Traditional Email + Strong Password + 2FA"]
+  },
+  {
+    "id": 47,
+    "topic": "Cybersecurity",
+    "question": "Secret management in production systems:",
+    "options": ["HashiCorp Vault / Infisical", "AWS Secrets Manager / GCP Secret Manager", "Encrypted .env files (dotenvx)", "Environment variables in CI/CD"]
+  },
+  {
+    "id": 48,
+    "topic": "Cybersecurity",
+    "question": "Open-source dependency supply chain security:",
+    "options": ["Automated scanning (Snyk/Dependabot)", "Pin exact hashes and lockfiles", "Internal artifact registry mirroring", "Review every package upgrade"]
+  },
+  {
+    "id": 49,
+    "topic": "AI",
+    "question": "What is the biggest bottleneck in building real-world AI applications?",
+    "options": ["Hallucinations and reliability", "Context window latency and API costs", "Data quality and ingestion pipelines", "Evaluating output benchmarks"]
+  },
+  {
+    "id": 50,
+    "topic": "AI",
+    "question": "Vector databases: Specialized vs General Relational extension:",
+    "options": ["pgvector in PostgreSQL is plenty", "Dedicated (Pinecone, Qdrant, Weaviate)", "Chroma / LanceDB embedded", "Full-text search (Elastic/Meilisearch) is enough"]
+  },
+  {
+    "id": 51,
+    "topic": "Languages",
+    "question": "Is C++ still relevant for new projects in 2026?",
+    "options": ["Yes: Game engines & ultra low-latency", "Yes: Embedded & robotics", "No: Rust is taking over", "C++23/26 keeps it very alive"]
+  },
+  {
+    "id": 52,
+    "topic": "Languages",
+    "question": "Which dynamic language will maintain the longest longevity?",
+    "options": ["Python (AI & Data)", "JavaScript (Web ecosystem)", "Ruby (Rails renaissance)", "PHP (WordPress & Laravel)"]
+  },
+  {
+    "id": 53,
+    "topic": "Languages",
+    "question": "Elixir & the Erlang BEAM in 2026:",
+    "options": ["Unmatched for concurrency & fault tolerance", "Niche but beloved by its users", "Phoenix LiveView is magic", "Too small an ecosystem"]
+  },
+  {
+    "id": 54,
+    "topic": "Web Dev",
+    "question": "REST APIs vs GraphQL vs tRPC / gRPC:",
+    "options": ["REST (Simple, cacheable, standard)", "tRPC (End-to-end TS type safety)", "GraphQL (Client-driven fetching)", "gRPC (High throughput binary)"]
+  },
+  {
+    "id": 55,
+    "topic": "Web Dev",
+    "question": "Mobile development approach for cross-platform apps:",
+    "options": ["React Native (Expo)", "Flutter", "Swift/Kotlin native only", "PWA (Progressive Web App)"]
+  },
+  {
+    "id": 56,
+    "topic": "Web Dev",
+    "question": "CSS in JS vs Utility-first (Tailwind) in 2026:",
+    "options": ["Utility-first (Tailwind v4)", "CSS-in-JS (StyleX / PandaCSS)", "Standard CSS variables + nesting", "Tailwind is overwhelming in JSX"]
+  },
+  {
+    "id": 57,
+    "topic": "DevOps",
+    "question": "Cloud provider of choice for personal and startup side projects:",
+    "options": ["Hetzner / DigitalOcean (VPS)", "AWS", "Cloudflare (Pages & Workers)", "Vercel / Supabase"]
+  },
+  {
+    "id": 58,
+    "topic": "DevOps",
+    "question": "Serverless Functions (AWS Lambda, Vercel) in production:",
+    "options": ["Great for spiky, event-driven workloads", "Cold starts and debugging are painful", "Containers on VPS are cheaper and simpler", "Cloudflare edge isolates are the future"]
+  },
+  {
+    "id": 59,
+    "topic": "DevOps",
+    "question": "Observability and telemetry in backend systems:",
+    "options": ["OpenTelemetry standard", "Datadog / New Relic", "Prometheus + Grafana + Loki", "Simple structured JSON logs"]
+  },
+  {
+    "id": 60,
+    "topic": "Tools",
+    "question": "Operating system for daily software engineering:",
+    "options": ["macOS (Apple Silicon)", "Linux (Ubuntu / Arch / Fedora)", "Windows + WSL 2", "Windows Native"]
+  },
+  {
+    "id": 61,
+    "topic": "Tools",
+    "question": "Keyboard preference for long coding sessions:",
+    "options": ["Custom Mechanical (Linear / Tactile)", "Ergonomic Split (Ergodox, Glove80)", "Laptop chiclet keyboard (MacBook)", "Low-profile Mechanical"]
+  },
+  {
+    "id": 62,
+    "topic": "Tools",
+    "question": "Monitor setup for maximum developer flow:",
+    "options": ["Single Ultra-wide (34\"-49\")", "Dual monitors (Horizontal + Vertical)", "Single 27\"/32\" 4K display", "Just laptop screen"]
+  },
+  {
+    "id": 63,
+    "topic": "Tools",
+    "question": "Documentation platform preference for engineering teams:",
+    "options": ["Notion", "Markdown in git repository", "Obsidian / Logseq", "Confluence"]
+  },
+  {
+    "id": 64,
+    "topic": "Career",
+    "question": "How many hours of deep coding flow do you realistically hit per day?",
+    "options": ["2 - 3 hours", "4 - 5 hours", "6+ hours (Hyperfocused)", "Less than 2 hours (Too many meetings)"]
+  },
+  {
+    "id": 65,
+    "topic": "Career",
+    "question": "Open source contribution experience:",
+    "options": ["Maintain / actively contribute", "Submitted PRs or bug fixes", "Want to contribute but intimidated", "Only consumer of OSS"]
+  },
+  {
+    "id": 66,
+    "topic": "Career",
+    "question": "Code reviews: Ideal turnaround time for a pull request:",
+    "options": ["Within a few hours", "Within 24 hours", "Days later after reminders", "Async pair programming instead"]
+  },
+  {
+    "id": 67,
+    "topic": "Debates",
+    "question": "Unit tests vs End-to-End (E2E) integration tests:",
+    "options": ["Unit tests give fastest feedback", "E2E tests catch real regressions (Playwright)", "Trophy: Mostly integration tests", "Testing in production"]
+  },
+  {
+    "id": 68,
+    "topic": "Debates",
+    "question": "Semantic Versioning (SemVer) vs CalVer (Calendar Versioning):",
+    "options": ["SemVer (Major.Minor.Patch) is king", "CalVer (YY.MM) is much clearer", "Git commit SHA is all that matters", "Hybrid approach"]
+  },
+  {
+    "id": 69,
+    "topic": "Debates",
+    "question": "Semicolons in JavaScript/TypeScript:",
+    "options": ["Always include semicolons", "No semicolons (cleaner syntax)", "Let Prettier decide automatically", "Don't care as long as it compiles"]
+  },
+  {
+    "id": 70,
+    "topic": "Memes",
+    "question": "What happens when you delete `node_modules`?",
+    "options": ["Gains 50 GB of disk space instantly", "Fixes 99% of mysterious build issues", "Takes 10 minutes to reinstall", "A black hole opens in root"]
+  },
+  {
+    "id": 71,
+    "topic": "AI",
+    "question": "Synthetic data generation for training models:",
+    "options": ["Essential for scaling reasoning", "Risks model collapse over iterations", "Only good with strict verification", "Human data is irreplaceable"]
+  },
+  {
+    "id": 72,
+    "topic": "AI",
+    "question": "Will prompt engineering be a relevant specialty in 3 years?",
+    "options": ["No, models will understand intent easily", "Yes, structured orchestration is hard", "Evolving into agent architecture", "Already obsolete"]
+  },
+  {
+    "id": 73,
+    "topic": "AI",
+    "question": "Voice interfaces (Realtime audio APIs): Will they replace keyboards for coding?",
+    "options": ["No, code requires visual spatial thinking", "Great for design discussion & reviews", "Only for high-level scaffolding", "Yes, voice-driven coding will arrive"]
+  },
+  {
+    "id": 74,
+    "topic": "Languages",
+    "question": "Go error handling (`if err != nil`):",
+    "options": ["Explicit, readable, and predictable", "Too repetitive and verbose", "Rust Result/Option is far superior", "Exceptions are better"]
+  },
+  {
+    "id": 75,
+    "topic": "Languages",
+    "question": "Favorite feature added to Python in recent versions (3.11 - 3.14):",
+    "options": ["Significant speed & JIT improvements", "Exception groups & task groups", "Improved error tracebacks & hints", "Pattern matching (`match/case`)"]
+  },
+  {
+    "id": 76,
+    "topic": "Web Dev",
+    "question": "WebAssembly (WASM): Where is its greatest real-world utility today?",
+    "options": ["Heavy in-browser apps (Figma, games)", "Serverless sandboxed runtimes", "Porting legacy C/Rust libraries", "Edge computing"]
+  },
+  {
+    "id": 77,
+    "topic": "Web Dev",
+    "question": "Component libraries: Build custom vs Headless primitives (Radix, Shadcn):",
+    "options": ["Shadcn UI (Copy-paste customizable)", "Headless primitives (Radix / React Aria)", "Complete styled kits (MUI / Mantine)", "Custom components from scratch"]
+  },
+  {
+    "id": 78,
+    "topic": "Databases",
+    "question": "Database migrations in team environments:",
+    "options": ["Automated in CI/CD pipeline", "Manual review & staged execution", "Zero-downtime expand/contract pattern", "DB migration tools (Alembic/Flyway)"]
+  },
+  {
+    "id": 79,
+    "topic": "DevOps",
+    "question": "Docker images: Alpine vs Debian Slim vs Distroless:",
+    "options": ["Debian Slim (Best balance & glibc)", "Alpine (Smallest image size)", "Distroless (Maximum security & no shell)", "Ubuntu base"]
+  },
+  {
+    "id": 80,
+    "topic": "Tools",
+    "question": "Web browser of choice for web development and daily use:",
+    "options": ["Arc / Zen Browser", "Google Chrome", "Mozilla Firefox (Dev Edition)", "Brave / Safari"]
+  },
+  {
+    "id": 81,
+    "topic": "Debates",
+    "question": "Design patterns: Do you actively think in GoF patterns (Factory, Strategy, Observer)?",
+    "options": ["Yes, they provide common vocabulary", "Naturally use some without thinking of names", "Composition over inheritance replaced most", "Over-engineering trap"]
+  },
+  {
+    "id": 82,
+    "topic": "Memes",
+    "question": "Writing unit tests for a 10-line utility function:",
+    "options": ["100% test coverage or bust", "Only test if it has edge cases", "Test in production", "If it compiles, it's correct"]
+  },
+  {
+    "id": 83,
+    "topic": "AI",
+    "question": "AI-generated code in pull requests: How do you review it?",
+    "options": ["Scrutinize even more rigorously than human code", "Review tests and run edge-case checks", "Treat it identical to human junior code", "Trust it if CI passes"]
+  },
+  {
+    "id": 84,
+    "topic": "Career",
+    "question": "Which tech role will see the highest demand growth over the next decade?",
+    "options": ["AI Infrastructure & Systems Engineers", "Cybersecurity Specialists", "Robotics & Embedded Software", "Data & ML Platform Engineers"]
+  },
+  {
+    "id": 85,
+    "topic": "Web Dev",
+    "question": "Static typing vs Runtime validation (Zod, Pydantic, Valibot):",
+    "options": ["Need both: Compile types + boundary validation", "Zod/Pydantic inferring types is ideal", "Static types are sufficient internally", "Validation only on public HTTP inputs"]
+  },
+  {
+    "id": 86,
+    "topic": "Languages",
+    "question": "Java in modern enterprise (Java 21+ with Virtual Threads):",
+    "options": ["Modern Java is actually great and fast", "Still prefer Kotlin on the JVM", "Too much legacy boilerplate", "Would rather use Go or C#"]
+  },
+  {
+    "id": 87,
+    "topic": "Debates",
+    "question": "Software estimation (Story points vs Hours vs No estimates):",
+    "options": ["No estimates (Break down to small tasks)", "Story points (Relative complexity)", "T-shirt sizing (S, M, L)", "Hours / Days estimates"]
+  },
+  {
+    "id": 88,
+    "topic": "Tools",
+    "question": "Note-taking and personal knowledge base:",
+    "options": ["Obsidian (Local Markdown)", "Notion", "Apple Notes / Simple text files", "Logseq / Foam"]
+  },
+  {
+    "id": 89,
+    "topic": "Memes",
+    "question": "Vim exit status: How did you first learn to exit Vim?",
+    "options": [":wq or :q! after googling", "Turned off the computer / closed terminal", "Pushed random keys until it quit", "I live in Vim now"]
+  },
+  {
+    "id": 90,
+    "topic": "AI",
+    "question": "Model Context Protocol (MCP) by Anthropic:",
+    "options": ["Huge breakthrough for standardizing tool calling", "Promising standard gaining adoption", "Just another API wrapper specification", "Haven't looked into it yet"]
+  },
+  {
+    "id": 91,
+    "topic": "Databases",
+    "question": "Event-driven architecture with Kafka / RabbitMQ vs Polling DB:",
+    "options": ["Kafka / RabbitMQ for decoupled scale", "PostgreSQL LISTEN/NOTIFY or simple queue", "Redis Streams / BullMQ", "Simple background worker polling"]
+  },
+  {
+    "id": 92,
+    "topic": "Cybersecurity",
+    "question": "Storing passwords in a database:",
+    "options": ["Argon2id (Modern gold standard)", "bcrypt (Battle-tested classic)", "PBKDF2 / scrypt", "Managed identity service (Auth0/Supabase)"]
+  },
+  {
+    "id": 93,
+    "topic": "Languages",
+    "question": "C# and .NET 8/9 in modern cross-platform development:",
+    "options": ["Blazing fast and underrated outside enterprise", "Great ecosystem with C# ergonomics", "Still feels Microsoft-centric", "Prefer Go or Rust for backends"]
+  },
+  {
+    "id": 94,
+    "topic": "Career",
+    "question": "Biggest cause of burnout for developers:",
+    "options": ["Constantly shifting requirements & scope creep", "Unrealistic deadlines & technical debt", "Toxic management & lack of autonomy", "On-call alerts and pager fatigue"]
+  },
+  {
+    "id": 95,
+    "topic": "Web Dev",
+    "question": "Micro-frontends in large organizations:",
+    "options": ["Necessary evil for huge separate teams", "Massive overhead; avoid if possible", "Monorepo with clear module boundaries is better", "Only with Module Federation"]
+  },
+  {
+    "id": 96,
+    "topic": "Tools",
+    "question": "Terminal multiplexer of choice:",
+    "options": ["tmux", "Zellij (Rust-based modern UI)", "Built-in IDE terminal tabs", "Ghostty / WezTerm native splits"]
+  },
+  {
+    "id": 97,
+    "topic": "Debates",
+    "question": "Clean Code principles (Uncle Bob) in modern programming:",
+    "options": ["Timeless fundamentals for maintainability", "Dogmatic; causes over-abstraction", "Take the good parts, ignore the dogma", "Simplicity and readability trump rules"]
+  },
+  {
+    "id": 98,
+    "topic": "Memes",
+    "question": "The best documentation for any legacy codebase is:",
+    "options": ["Git blame on mysterious lines", "The one senior dev who wrote it 5 years ago", "The test suite (if tests exist)", "The error stack trace"]
+  },
+  {
+    "id": 99,
+    "topic": "AI",
+    "question": "Reasoning models (OpenAI o1/o3, DeepSeek R1) vs Standard LLMs:",
+    "options": ["Game changer for math, logic & deep coding", "Too slow for conversational chat", "Hybrid orchestration will dominate", "Standard models are fast enough"]
+  },
+  {
+    "id": 100,
+    "topic": "Career",
+    "question": "Generalist vs Specialist in the current tech landscape:",
+    "options": ["T-shaped engineer (Broad knowledge, 1 deep skill)", "Deep Specialist (Domain expert)", "Versatile Generalist (Full-stack + DevOps)", "Product Engineer (Focused on user outcomes)"]
+  },
+  {
+    "id": 101,
+    "topic": "Web Dev",
+    "question": "WebSockets vs Server-Sent Events (SSE) for live streaming:",
+    "options": ["SSE for one-way streams (LLMs/updates)", "WebSockets for bidirectional real-time", "HTTP long-polling fallback", "WebRTC for ultra low-latency"]
+  },
+  {
+    "id": 102,
+    "topic": "DevOps",
+    "question": "GitOps with ArgoCD or Flux:",
+    "options": ["Declarative source of truth in git is ideal", "Too complex for small/medium clusters", "Standard CI pushing images is enough", "Essential for multi-cluster scaling"]
+  },
+  {
+    "id": 103,
+    "topic": "Languages",
+    "question": "Swift outside Apple ecosystems (Server-side Swift):",
+    "options": ["Great language with huge untapped potential", "Niche; Apple isn't investing enough in server", "Vapor is impressive", "Will remain mostly iOS/macOS"]
+  },
+  {
+    "id": 104,
+    "topic": "Tools",
+    "question": "Code search & indexing tool across massive repos:",
+    "options": ["Ripgrep (rg) in terminal", "Sourcegraph", "GitHub code search", "VS Code search"]
+  },
+  {
+    "id": 105,
+    "topic": "Debates",
+    "question": "Monolithic repository vs micro-repositories in 2026:",
+    "options": ["Monorepo with modern caching (Turborepo/Nx)", "Separate repos with strict SemVer packages", "Single service monolith is all you need", "Hybrid repository architecture"]
+  }
+]
