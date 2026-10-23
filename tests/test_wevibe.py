@@ -7,6 +7,9 @@ import sys
 import os
 import json
 import asyncio
+import time
+import aiosqlite
+from datetime import datetime, timezone, timedelta
 
 # Ensure parent directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,8 +22,10 @@ import config
 import utils
 import database
 from cogs.ranking import calculate_rankings_score
+from cogs.news import is_fresh_entry
+from cogs.afk import format_duration
 
-print(f"Config loaded. Poll Post Hour: {config.POLL_POST_HOUR_UTC} UTC")
+print("Config loaded. Community poll bank and storage available.")
 print(f"Breaking sources count: {len(config.BREAKING_CONFIG.sources)}")
 print(f"Research sources count: {len(config.RESEARCH_CONFIG.sources)}")
 print(f"AI news sources count: {len(config.AI_NEWS_CONFIG.sources)}")
@@ -52,6 +57,12 @@ async def test_db():
     assert await db.is_news_posted(url_hash) is True
     await db.record_breaking_post(url_hash)
     assert await db.get_breaking_posts_today_count() == 1
+    skipped_hash = "old-news-hash"
+    await db.mark_news_skipped(skipped_hash, "https://example.com/old", "Old item", "news")
+    assert await db.is_news_posted(skipped_hash) is True
+    async with aiosqlite.connect(test_db_path) as check_db:
+        async with check_db.execute("SELECT status FROM posted_news WHERE url_hash = ?", (skipped_hash,)) as cursor:
+            assert (await cursor.fetchone())[0] == "skipped"
     print("✓ News deduplication & daily breaking cap tested")
 
     # Polls
@@ -90,6 +101,18 @@ async def test_db():
     assert active_after is None, "Completed story should no longer be active"
     print("✓ One-word story state & manual completion tested")
 
+    # Staff AFK
+    afk_started = datetime.now(timezone.utc) - timedelta(hours=1, minutes=2)
+    await db.set_afk(123456789, "In a meeting", started_at=afk_started)
+    afk = await db.get_afk(123456789)
+    assert afk["reason"] == "In a meeting"
+    assert afk["mention_count"] == 0
+    assert await db.increment_afk_mentions(123456789) == 1
+    removed_afk = await db.remove_afk(123456789)
+    assert removed_afk["mention_count"] == 1
+    assert await db.get_afk(123456789) is None
+    print("✓ AFK persistence and mention counting tested")
+
 asyncio.run(test_db())
 
 if os.path.exists(test_db_path):
@@ -116,6 +139,19 @@ bar = utils.make_progress_bar(0.6, length=10)
 print(f"60% Progress Bar: {bar}")
 assert bar == "▰▰▰▰▰▰▱▱▱▱"
 print("✓ Progress bar verified")
+
+print("\n--- Step 6: Testing News Age Filter ---")
+now = datetime.now(timezone.utc)
+old_entry = {"published_parsed": time.gmtime((now - timedelta(days=3)).timestamp())}
+fresh_entry = {"published_parsed": time.gmtime((now - timedelta(days=1)).timestamp())}
+assert is_fresh_entry(old_entry, max_age_hours=48, now=now) is False
+assert is_fresh_entry(fresh_entry, max_age_hours=48, now=now) is True
+print("✓ News age filter verified")
+
+print("\n--- Step 7: Testing AFK Duration Formatting ---")
+assert format_duration(3661) == "1 hour, 1 minute"
+assert format_duration(0) == "less than a minute"
+print("✓ AFK duration formatting verified")
 
 print("\n=======================================================")
 print("ALL VERIFICATION CHECKS PASSED WITH 100% SUCCESS!")

@@ -2,7 +2,7 @@
 
 A Discord community bot built with **Python 3.11+**, **discord.py 2.x**, **aiohttp**, **feedparser**, and **aiosqlite**.
 
-WeVibe powers the **WeVibe** server with automated tech and AI news feeds, daily community polls, interactive Top 3 ranking leaderboards, and an automated one-word collaborative storytelling game.
+WeVibe powers the **WeVibe** server with automated tech and AI news feeds, community polls, interactive Top 3 ranking leaderboards, and an automated one-word collaborative storytelling game.
 
 ---
 
@@ -12,6 +12,13 @@ WeVibe powers the **WeVibe** server with automated tech and AI news feeds, daily
 - Put comma-separated Discord user IDs in `CERTIFIED_USER_IDS` in `.env` for certified-only management commands.
 - Everyone can vote in polls and rankings and participate in an active one-word story.
 - Certified-only commands reply ephemerally with `You don't have permission to use this command.` when used by another user.
+- Staff can use the configurable prefix commands `?afk [reason]` and `?back` when they have `STAFF_ROLE_ID`.
+
+### 💤 Staff AFK System
+- Staff-only prefix commands persist AFK status across restarts.
+- Mentions and replies to an AFK staff member receive a temporary notice, throttled per channel.
+- A normal message automatically clears AFK and sends a temporary welcome-back summary.
+- AFK responses never ping users, roles, `@everyone`, or `@here`.
 
 ---
 
@@ -34,9 +41,8 @@ Feeds are monitored continuously and posted with rich branding embeds, category 
 
 ---
 
-### 📊 Daily Community Polls (`#random-daily-polls`)
+### 📊 Community Polls (`#random-daily-polls`)
 - **Poll Bank**: Includes **105+ curated questions** in `data/polls.json` covering AI, Dev, Frameworks, Cloud, Career, and tech debates.
-- **Daily Automated Schedule**: Posts a new random poll daily at a configurable UTC hour (`POLL_POST_HOUR_UTC`).
 - **No Repeats**: Tracks used polls in SQLite and only resets once the entire bank has been cycled.
 - **Live Progress Bars**: Real-time visual bars (e.g. `▰▰▰▰▰▱▱▱▱▱ 50%`) updating automatically whenever someone clicks a button.
 - **Changeable Votes**: Everyone can change their vote anytime before the 24-hour mark.
@@ -100,9 +106,10 @@ WeVibe/
 ├── cogs/
 │   ├── __init__.py
 │   ├── news.py             # RSS scraper, deduplication, 4-channel tasks, /news force-post
-│   ├── polls.py            # Daily polls, 24h timer, live result bars, button views
+│   ├── polls.py            # Community polls, 24h timer, live result bars, button views
 │   ├── ranking.py          # Top 3 ranking, ephemeral 3-dropdowns UI, live leaderboard
-│   └── story.py            # One-word story listener, moderation, compilation embed
+│   ├── story.py             # One-word story listener, moderation, compilation embed
+│   └── afk.py               # Staff-only prefix AFK commands and notices
 ├── data/
 │   └── polls.json          # Curated bank of 105+ tech/dev/AI poll questions
 └── tests/
@@ -123,7 +130,7 @@ WeVibe/
 3. Under the **Bot** tab:
    - Click **Reset Token** and copy your **Bot Token**.
    - Under **Privileged Gateway Intents**, enable:
-     - ✅ **Message Content Intent** *(Critical for `#one-word-story`)*
+     - ✅ **Message Content Intent** *(Required for `#one-word-story` and prefix AFK commands)*
      - ✅ **Server Members Intent**
      - ✅ **Presence Intent**
 4. Under **OAuth2 -> URL Generator**:
@@ -168,9 +175,10 @@ CHANNEL_POLLS=123456789012345678
 CHANNEL_STORY=123456789012345678
 POLL_PING_ROLE_ID=123456789012345678  # Optional role ping for new polls
 STORY_PING_ROLE_ID=123456789012345678  # Optional role ping for story start/end
+COMMAND_PREFIX=?  # Prefix for staff commands
+STAFF_ROLE_ID=123456789012345678  # Role allowed to use ?afk and ?back
+MAX_NEWS_AGE_HOURS=48  # Ignore feed items older than this; channel configs may override it
 
-# Optional: Daily poll hour (UTC 0-23, default 14)
-POLL_POST_HOUR_UTC=14
 ```
 
 ### 5. Run the Verification Tests
@@ -191,7 +199,7 @@ On launch:
 - The bot initializes the SQLite database (`data/wevibe.db`).
 - Loads all cogs (`news`, `polls`, `ranking`, `story`).
 - Synchronizes slash commands directly to your `GUILD_ID` for instant availability.
-- Begins scheduled background tasks for news feeds and daily polls.
+- Begins scheduled background tasks for news feeds and poll expiry checks.
 
 ---
 
@@ -211,6 +219,8 @@ On launch:
 | `/story start` | Certified users | Start a new one-word story session |
 | `/story skip` | Certified users | End active story early and post completed tale |
 | `/story stop` | Certified users | Cancel the active story without posting |
+| `?afk [reason]` | Staff role | Set your persistent AFK status |
+| `?back` | Staff role | Manually remove your AFK status |
 
 ---
 

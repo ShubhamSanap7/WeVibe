@@ -19,6 +19,17 @@ logger = logging.getLogger("WeVibe.Config")
 # ==============================================================================
 DISCORD_TOKEN: str = os.getenv("DISCORD_TOKEN", "").strip()
 GUILD_ID: Optional[int] = int(os.getenv("GUILD_ID")) if os.getenv("GUILD_ID", "").strip().isdigit() else None
+COMMAND_PREFIX: str = os.getenv("COMMAND_PREFIX", "?").strip() or "?"
+
+# Staff role for prefix AFK commands. An empty or invalid value disables them.
+_raw_staff_role_id = os.getenv("STAFF_ROLE_ID", "").strip()
+STAFF_ROLE_ID: Optional[int] = None
+if not _raw_staff_role_id:
+    logger.warning("STAFF_ROLE_ID is empty; AFK prefix commands are disabled.")
+elif _raw_staff_role_id.isdigit():
+    STAFF_ROLE_ID = int(_raw_staff_role_id)
+else:
+    logger.warning("Invalid STAFF_ROLE_ID: '%s'; AFK prefix commands are disabled.", _raw_staff_role_id)
 
 # Parse CERTIFIED_USER_IDS from comma-separated string in .env
 CERTIFIED_USER_IDS: Set[int] = set()
@@ -65,8 +76,13 @@ else:
 # Database path
 DATABASE_PATH: str = os.getenv("DATABASE_PATH", "data/wevibe.db").strip()
 
-# Daily poll schedule
-POLL_POST_HOUR_UTC: int = int(os.getenv("POLL_POST_HOUR_UTC", "14"))
+# Maximum age for news feed items, in hours
+_raw_max_news_age_hours = os.getenv("MAX_NEWS_AGE_HOURS", "48").strip()
+try:
+    MAX_NEWS_AGE_HOURS: int = max(1, int(_raw_max_news_age_hours))
+except ValueError:
+    logger.warning("Invalid MAX_NEWS_AGE_HOURS '%s'; using 48 hours.", _raw_max_news_age_hours)
+    MAX_NEWS_AGE_HOURS = 48
 
 # WeVibe Footer & Branding
 FOOTER_TEXT: str = "WeVibe • Stay Connected & Informed"
@@ -114,6 +130,8 @@ class ChannelNewsConfig:
     interval_minutes: int
     max_posts_per_cycle: int
     daily_post_cap: Optional[int] = None
+    # Optional channel-specific override; None uses MAX_NEWS_AGE_HOURS.
+    max_news_age_hours: Optional[int] = None
     color: int = COLOR_BRAND
     sources: List[FeedSource] = field(default_factory=list)
 

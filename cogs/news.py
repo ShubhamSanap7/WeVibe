@@ -8,7 +8,9 @@ import asyncio
 import hashlib
 import logging
 import re
-from datetime import datetime, timezone
+import calendar
+from time import monotonic
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any, Tuple
 import aiohttp
 import discord
@@ -34,6 +36,33 @@ from config import (
 
 logger = logging.getLogger("WeVibe.News")
 
+FEED_CACHE_TTL_SECONDS = 10 * 60
+FEED_FETCH_STAGGER_SECONDS = 0.15
+
+
+def entry_datetime_utc(entry: Dict[str, Any]) -> Optional[datetime]:
+    """Returns an RSS entry's published/updated time as UTC, if usable."""
+    parsed_time = entry.get("published_parsed") or entry.get("updated_parsed")
+    if not parsed_time:
+        return None
+    try:
+        return datetime.fromtimestamp(calendar.timegm(parsed_time), tz=timezone.utc)
+    except (TypeError, ValueError, OverflowError, IndexError):
+        return None
+
+
+def is_fresh_entry(
+    entry: Dict[str, Any],
+    max_age_hours: int,
+    now: Optional[datetime] = None,
+) -> bool:
+    """Returns whether an entry has a usable date within the configured age."""
+    published_at = entry_datetime_utc(entry)
+    if published_at is None:
+        return False
+    current_time = now or datetime.now(timezone.utc)
+    return current_time - published_at <= timedelta(hours=max_age_hours)
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) WeVibeNewsBot/1.0 (+https://discord.gg/wevibe)"
 }
@@ -52,6 +81,9 @@ class NewsCog(commands.Cog, name="News"):
         self.db = db
         self.session: Optional[aiohttp.ClientSession] = None
         self._lock = asyncio.Lock()
+        self._feed_cache: Dict[str, Dict[str, Any]] = {}
+        self._seen_news_hashes: set[str] = set()
+        self._is_first_run: Optional[bool] = None
 
         # Start scheduled loops
         self.breaking_task.start()
@@ -60,7 +92,7 @@ class NewsCog(commands.Cog, name="News"):
         self.research_task.start()
 
     async def cog_load(self):
-        timeout = aiohttp.ClientTimeout(total=20)
+        timeout = aiohttp.ClientTimeout(total=15)
         self.session = aiohttp.ClientSession(headers=HEADERS, timeout=timeout)
 
     async def cog_unload(self):
@@ -75,26 +107,64 @@ class NewsCog(commands.Cog, name="News"):
     # FEED FETCHING & PARSING
     # =========================================================================
     async def fetch_feed_entries(self, source: FeedSource) -> List[Dict[str, Any]]:
-        """Safely fetches and parses an RSS feed without crashing on failure."""
+        """Fetches a feed with conditional requests and a shared short-lived cache."""
         if not self.session:
-            timeout = aiohttp.ClientTimeout(total=20)
+            timeout = aiohttp.ClientTimeout(total=15)
             self.session = aiohttp.ClientSession(headers=HEADERS, timeout=timeout)
 
+        cached = self._feed_cache.get(source.url)
+        now = monotonic()
+        if cached and now - cached["fetched_at"] < FEED_CACHE_TTL_SECONDS:
+            return cached["entries"]
+
+        request_headers = dict(HEADERS)
+        if cached:
+            if cached.get("etag"):
+                request_headers["If-None-Match"] = cached["etag"]
+            if cached.get("last_modified"):
+                request_headers["If-Modified-Since"] = cached["last_modified"]
+
         try:
-            async with self.session.get(source.url) as response:
+            async with self.session.get(
+                source.url,
+                headers=request_headers,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as response:
+                if response.status == 304 and cached:
+                    cached["fetched_at"] = now
+                    logger.debug("Feed %s returned 304 Not Modified.", source.name)
+                    return cached["entries"]
                 if response.status != 200:
                     logger.warning("Feed %s returned HTTP %s", source.name, response.status)
                     return []
-                text = await response.text()
-                parsed = feedparser.parse(text)
+
+                body = await response.read()
+                content_hash = hashlib.sha256(body).hexdigest()
+                if cached and cached.get("content_hash") == content_hash:
+                    cached.update({
+                        "fetched_at": now,
+                        "etag": response.headers.get("ETag"),
+                        "last_modified": response.headers.get("Last-Modified"),
+                    })
+                    logger.debug("Feed %s content unchanged; skipped parsing.", source.name)
+                    return cached["entries"]
+
+                parsed = await asyncio.to_thread(feedparser.parse, body)
                 if parsed.bozo and not parsed.entries:
                     logger.warning("Feed %s encountered parsing issue: %s", source.name, parsed.bozo_exception)
+                self._feed_cache[source.url] = {
+                    "fetched_at": now,
+                    "content_hash": content_hash,
+                    "etag": response.headers.get("ETag"),
+                    "last_modified": response.headers.get("Last-Modified"),
+                    "entries": parsed.entries,
+                }
                 return parsed.entries
         except asyncio.TimeoutError:
             logger.warning("Timeout fetching feed %s (%s)", source.name, source.url)
             return []
         except Exception as e:
-            logger.error("Error fetching feed %s: %s", source.name, e)
+            logger.warning("Error fetching feed %s: %s", source.name, e)
             return []
 
     def extract_thumbnail(self, entry: Any) -> Optional[str]:
@@ -171,9 +241,10 @@ class NewsCog(commands.Cog, name="News"):
                 logger.warning("Could not resolve channel ID %s for %s: %s", config.channel_id, config.channel_key, e)
                 return 0
 
-        # Check total news posted count to detect first run
-        total_posted = await self.db.get_posted_news_count()
-        is_first_run = total_posted == 0
+        # Read the full posted-news count only once per process.
+        if self._is_first_run is None:
+            self._is_first_run = (await self.db.get_posted_news_count()) == 0
+        is_first_run = self._is_first_run
 
         posted_in_this_cycle = 0
 
@@ -184,19 +255,20 @@ class NewsCog(commands.Cog, name="News"):
                 logger.info("Daily breaking news cap reached (%s/%s). Skipping.", today_breaking_count, config.daily_post_cap)
                 return 0
 
-        # Collect candidate items across sources
+        max_age_hours = config.max_news_age_hours if config.max_news_age_hours is not None else MAX_NEWS_AGE_HOURS
+
+        # Collect fresh candidate items across sources
         candidates: List[Dict[str, Any]] = []
 
-        for source in config.sources:
+        for source_index, source in enumerate(config.sources):
             try:
+                if source_index:
+                    await asyncio.sleep(FEED_FETCH_STAGGER_SECONDS)
                 entries = await self.fetch_feed_entries(source)
                 if not entries:
                     continue
 
-                # On first run, limit entries per feed
-                if is_first_run:
-                    entries = entries[:FIRST_RUN_MAX_PER_FEED]
-
+                fresh_entries: List[Dict[str, Any]] = []
                 for entry in entries:
                     link = entry.get("link", "").strip()
                     title = entry.get("title", "").strip()
@@ -204,8 +276,30 @@ class NewsCog(commands.Cog, name="News"):
                         continue
 
                     url_h = hash_url(link)
-                    if await self.db.is_news_posted(url_h):
+                    if url_h in self._seen_news_hashes or await self.db.is_news_posted(url_h):
+                        self._seen_news_hashes.add(url_h)
                         continue
+
+                    entry_time = entry_datetime_utc(entry)
+                    if entry_time is None:
+                        logger.debug("Skipping feed item without a usable date: %s", link)
+                        await self.db.mark_news_skipped(url_h, link, title, config.channel_key)
+                        self._seen_news_hashes.add(url_h)
+                        continue
+                    if not is_fresh_entry(entry, max_age_hours):
+                        await self.db.mark_news_skipped(url_h, link, title, config.channel_key)
+                        self._seen_news_hashes.add(url_h)
+                        continue
+                    fresh_entries.append(entry)
+
+                # Apply the first-run cap only after stale items are removed.
+                if is_first_run:
+                    fresh_entries = fresh_entries[:FIRST_RUN_MAX_PER_FEED]
+
+                for entry in fresh_entries:
+                    link = entry.get("link", "").strip()
+                    title = entry.get("title", "").strip()
+                    url_h = hash_url(link)
 
                     # Filter: Breaking News
                     if config.channel_key == "breaking":
@@ -237,13 +331,16 @@ class NewsCog(commands.Cog, name="News"):
                         "source": source,
                         "url_hash": url_h,
                         "link": link,
-                        "title": title
+                        "title": title,
+                        "published_at": entry_datetime_utc(entry),
                     })
             except Exception as e:
                 logger.error("Unexpected error in feed loop for source %s: %s", source.name, e)
                 continue
 
-        # Sort candidates or limit to max_posts_per_cycle
+        candidates.sort(key=lambda item: item["published_at"], reverse=True)
+
+        # Apply per-cycle limits only after freshness filtering and sorting.
         limit = config.max_posts_per_cycle
         if config.channel_key == "breaking" and config.daily_post_cap:
             remaining_today = config.daily_post_cap - (await self.db.get_breaking_posts_today_count())
@@ -257,7 +354,7 @@ class NewsCog(commands.Cog, name="News"):
             url_h = item["url_hash"]
 
             # Double check deduplication before posting
-            if await self.db.is_news_posted(url_h):
+            if url_h in self._seen_news_hashes or await self.db.is_news_posted(url_h):
                 continue
 
             summary = clean_html_summary(entry.get("summary", "") or entry.get("description", ""), max_chars=250)
@@ -289,10 +386,12 @@ class NewsCog(commands.Cog, name="News"):
             try:
                 await channel.send(embed=embed)
                 await self.db.mark_news_posted(url_h, link, title, config.channel_key)
+                self._seen_news_hashes.add(url_h)
+                self._is_first_run = False
                 if config.channel_key == "breaking":
                     await self.db.record_breaking_post(url_h)
                 posted_in_this_cycle += 1
-                logger.info("Posted news item [%s]: %s -> #%s", category, title, channel.name)
+                logger.debug("Posted news item [%s]: %s -> #%s", category, title, channel.name)
                 # Small pause between messages to be polite to Discord rate limits
                 await asyncio.sleep(1.5)
             except discord.Forbidden:

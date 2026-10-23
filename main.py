@@ -17,6 +17,7 @@ from discord.ext import commands
 from config import (
     DISCORD_TOKEN, GUILD_ID, DATABASE_PATH, FOOTER_TEXT,
     BREAKING_CONFIG, RESEARCH_CONFIG, AI_NEWS_CONFIG, TECH_NEWS_CONFIG,
+    COMMAND_PREFIX,
 )
 from database import Database
 from utils import create_embed, NotCertifiedError
@@ -56,7 +57,7 @@ class WeVibeBot(commands.Bot):
         intents.guilds = True
 
         super().__init__(
-            command_prefix="!",  # Slash commands are primary; prefix kept for compatibility
+            command_prefix=COMMAND_PREFIX,
             intents=intents,
             help_command=None
         )
@@ -74,7 +75,8 @@ class WeVibeBot(commands.Bot):
             "cogs.news",
             "cogs.polls",
             "cogs.ranking",
-            "cogs.story"
+            "cogs.story",
+            "cogs.afk"
         ]
 
         for cog in cogs:
@@ -153,7 +155,8 @@ async def help_command(interaction: discord.Interaction):
             "`/news force-post` — Run a news feed check\n"
             "`/poll post-now`, `/poll add`, `/poll list` — Manage polls\n"
             "`/rank create`, `/rank close`, `/rank list` — Manage rankings\n"
-            "`/story start`, `/story skip`, `/story stop` — Manage the one-word story"
+            "`/story start`, `/story skip`, `/story stop` — Manage the one-word story\n"
+            f"`{COMMAND_PREFIX}afk [reason]`, `{COMMAND_PREFIX}back` — Staff AFK status"
         ),
         inline=False,
     )

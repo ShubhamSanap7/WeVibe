@@ -1,6 +1,6 @@
 """
-WeVibe Discord Bot - Random Daily Polls Cog
-Manages the 100+ question poll bank, daily scheduled posting, persistent button voting,
+WeVibe Discord Bot - Community Polls Cog
+Manages the 100+ question poll bank, persistent button voting,
 live visual progress bars, 24-hour auto-close, and admin management commands.
 """
 
@@ -22,7 +22,6 @@ from config import (
     COLOR_POLL,
     COLOR_SUCCESS,
     COLOR_ERROR,
-    POLL_POST_HOUR_UTC,
     POLL_PING_ROLE_ID,
 )
 
@@ -65,7 +64,7 @@ def build_poll_embed(
     is_closed: bool = False
 ) -> discord.Embed:
     """Constructs the poll embed with live result bars."""
-    title = f"📊 Daily Poll: {question}" if not is_closed else f"📊 [CLOSED] Daily Poll: {question}"
+    title = f"📊 Community Poll: {question}" if not is_closed else f"📊 [CLOSED] Community Poll: {question}"
 
     # Calculate percentages
     lines = []
@@ -113,7 +112,7 @@ def build_poll_embed(
     )
 
     if not is_closed:
-        embed.set_author(name="WeVibe Daily Community Poll", icon_url="https://cdn.discordapp.com/emojis/1041071239564861440.webp")
+        embed.set_author(name="WeVibe Community Poll", icon_url="https://cdn.discordapp.com/emojis/1041071239564861440.webp")
     return embed
 
 
@@ -187,7 +186,7 @@ class PollsCog(commands.Cog, name="Polls"):
     def __init__(self, bot: commands.Bot, db: Database):
         self.bot = bot
         self.db = db
-        self.daily_poll_task.start()
+        self._poll_bank_cache: Optional[List[Dict[str, Any]]] = None
         self.check_expired_polls.start()
 
     @staticmethod
@@ -196,6 +195,11 @@ class PollsCog(commands.Cog, name="Polls"):
             return None, discord.AllowedMentions.none()
         role = discord.Object(id=POLL_PING_ROLE_ID)
         return f"<@&{POLL_PING_ROLE_ID}>", discord.AllowedMentions(roles=[role])
+
+    def _get_poll_bank(self) -> List[Dict[str, Any]]:
+        if self._poll_bank_cache is None:
+            self._poll_bank_cache = load_poll_bank()
+        return self._poll_bank_cache
 
     async def cog_load(self):
         # Re-register all active polls to ensure buttons persist after bot restarts
@@ -208,7 +212,6 @@ class PollsCog(commands.Cog, name="Polls"):
         logger.info("Registered %s persistent poll views.", len(active_polls))
 
     async def cog_unload(self):
-        self.daily_poll_task.cancel()
         self.check_expired_polls.cancel()
 
     # =========================================================================
@@ -265,38 +268,9 @@ class PollsCog(commands.Cog, name="Polls"):
         return poll_id
 
     # =========================================================================
-    # SCHEDULED TASKS
+    # BACKGROUND TASKS
     # =========================================================================
-    @tasks.loop(minutes=30)
-    async def daily_poll_task(self):
-        """Checks if it is time to post the daily poll (POLL_POST_HOUR_UTC)."""
-        try:
-            now = datetime.now(timezone.utc)
-            if now.hour != POLL_POST_HOUR_UTC:
-                return
-
-            bank = load_poll_bank()
-            if not bank:
-                return
-
-            used_ids = await self.db.get_all_used_poll_ids()
-            available = [p for p in bank if p["id"] not in used_ids]
-
-            if not available:
-                logger.info("All polls in bank have been used! Resetting used polls pool.")
-                await self.db.clear_used_polls()
-                available = bank
-
-            chosen = random.choice(available)
-            poll_id = await self.post_poll(chosen["question"], chosen["options"])
-            if poll_id:
-                await self.db.mark_poll_used(chosen["id"])
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            logger.exception("Unhandled error in daily_poll_task; it will continue on the next cycle.")
-
-    @tasks.loop(minutes=2)
+    @tasks.loop(minutes=5)
     async def check_expired_polls(self):
         """Finds expired open polls, closes them, and updates message to show final results."""
         try:
@@ -349,23 +323,14 @@ class PollsCog(commands.Cog, name="Polls"):
             except Exception:
                 logger.exception("Failed to restart scheduled loop %s.", name)
 
-    @daily_poll_task.error
-    async def daily_poll_task_error(self, error: Exception):
-        logger.exception("Unhandled error in daily_poll_task: %s", error)
-
     @check_expired_polls.error
     async def check_expired_polls_error(self, error: Exception):
         logger.exception("Unhandled error in check_expired_polls: %s", error)
-
-    @daily_poll_task.after_loop
-    async def daily_poll_task_after_loop(self):
-        asyncio.create_task(self._restart_loop(self.daily_poll_task, "daily_poll_task"))
 
     @check_expired_polls.after_loop
     async def check_expired_polls_after_loop(self):
         asyncio.create_task(self._restart_loop(self.check_expired_polls, "check_expired_polls"))
 
-    @daily_poll_task.before_loop
     @check_expired_polls.before_loop
     async def before_poll_tasks(self):
         await self.bot.wait_until_ready()
@@ -375,7 +340,7 @@ class PollsCog(commands.Cog, name="Polls"):
     # =========================================================================
     poll_group = app_commands.Group(
         name="poll",
-        description="Daily community poll management commands."
+        description="Community poll management commands."
     )
 
     @poll_group.command(name="post-now", description="Immediately post a poll from the bank or by ID.")
@@ -383,7 +348,7 @@ class PollsCog(commands.Cog, name="Polls"):
     @is_certified()
     async def poll_post_now(self, interaction: discord.Interaction, poll_id: Optional[int] = None):
         """Post a poll immediately (Certified users only)."""
-        bank = load_poll_bank()
+        bank = self._get_poll_bank()
         if not bank:
             await interaction.response.send_message("Poll bank is empty.", ephemeral=True)
             return
@@ -443,7 +408,7 @@ class PollsCog(commands.Cog, name="Polls"):
         if option4 and option4.strip():
             options.append(option4.strip())
 
-        bank = load_poll_bank()
+        bank = self._get_poll_bank()
         new_id = (max([p["id"] for p in bank]) + 1) if bank else 1
 
         new_entry = {
@@ -455,6 +420,7 @@ class PollsCog(commands.Cog, name="Polls"):
         bank.append(new_entry)
 
         if save_poll_bank(bank):
+            self._poll_bank_cache = bank
             embed = create_embed(
                 title="✅ Poll Added to Bank",
                 description=f"**ID:** `#{new_id}`\n**Topic:** `{new_entry['topic']}`\n**Question:** {new_entry['question']}\n**Options:**\n" + "\n".join([f"• {o}" for o in options]),
@@ -469,7 +435,7 @@ class PollsCog(commands.Cog, name="Polls"):
     async def poll_list(self, interaction: discord.Interaction):
         """List poll statuses (Certified users only)."""
 
-        bank = load_poll_bank()
+        bank = self._get_poll_bank()
         used_ids = await self.db.get_all_used_poll_ids()
         active = await self.db.get_active_polls()
 

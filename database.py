@@ -35,9 +35,14 @@ class Database:
                     url TEXT NOT NULL,
                     title TEXT,
                     channel_key TEXT NOT NULL,
-                    posted_at TEXT NOT NULL
+                    posted_at TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'posted'
                 )
             """)
+            async with db.execute("PRAGMA table_info(posted_news)") as cursor:
+                posted_news_columns = {row[1] for row in await cursor.fetchall()}
+            if "status" not in posted_news_columns:
+                await db.execute("ALTER TABLE posted_news ADD COLUMN status TEXT NOT NULL DEFAULT 'posted'")
 
             # 3. Breaking News Daily Tracker
             await db.execute("""
@@ -142,6 +147,16 @@ class Database:
                 )
             """)
 
+            # 8. Staff AFK status
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS afk_status (
+                    user_id INTEGER PRIMARY KEY,
+                    reason TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    mention_count INTEGER NOT NULL DEFAULT 0
+                )
+            """)
+
             await db.commit()
 
     # =========================================================================
@@ -160,6 +175,54 @@ class Database:
                 return row[0] if row else 0
 
     # =========================================================================
+    # STAFF AFK STATUS
+    # =========================================================================
+    async def set_afk(self, user_id: int, reason: str, started_at: Optional[datetime] = None) -> None:
+        started = (started_at or datetime.now(timezone.utc)).isoformat()
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT INTO afk_status (user_id, reason, started_at, mention_count)
+                VALUES (?, ?, ?, 0)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    reason = excluded.reason,
+                    started_at = excluded.started_at,
+                    mention_count = 0
+                """,
+                (user_id, reason, started),
+            )
+            await db.commit()
+
+    async def get_afk(self, user_id: int) -> Optional[Dict[str, Any]]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM afk_status WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                return dict(row) if row else None
+
+    async def increment_afk_mentions(self, user_id: int) -> Optional[int]:
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE afk_status SET mention_count = mention_count + 1 WHERE user_id = ?",
+                (user_id,),
+            )
+            await db.commit()
+            async with db.execute("SELECT mention_count FROM afk_status WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                return int(row[0]) if row else None
+
+    async def remove_afk(self, user_id: int) -> Optional[Dict[str, Any]]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM afk_status WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+            if not row:
+                return None
+            await db.execute("DELETE FROM afk_status WHERE user_id = ?", (user_id,))
+            await db.commit()
+            return dict(row)
+
+    # =========================================================================
     # NEWS DEDUPLICATION & LIMITS
     # =========================================================================
     async def is_news_posted(self, url_hash: str) -> bool:
@@ -174,8 +237,21 @@ class Database:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
-                INSERT OR IGNORE INTO posted_news (url_hash, url, title, channel_key, posted_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT OR IGNORE INTO posted_news (url_hash, url, title, channel_key, posted_at, status)
+                VALUES (?, ?, ?, ?, ?, 'posted')
+                """,
+                (url_hash, url, title, channel_key, now)
+            )
+            await db.commit()
+
+    async def mark_news_skipped(self, url_hash: str, url: str, title: str, channel_key: str) -> None:
+        """Marks a feed item as seen without treating it as posted."""
+        now = datetime.now(timezone.utc).isoformat()
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT OR IGNORE INTO posted_news (url_hash, url, title, channel_key, posted_at, status)
+                VALUES (?, ?, ?, ?, ?, 'skipped')
                 """,
                 (url_hash, url, title, channel_key, now)
             )
