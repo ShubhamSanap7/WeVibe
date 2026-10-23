@@ -95,6 +95,8 @@ WeVibe/
 ├── database.py             # Asynchronous SQLite layer (aiosqlite)
 ├── utils.py                # Embed builder, progress bars, HTML cleaner, text formatter
 ├── main.py                 # Bot entrypoint, gateway setup, slash command syncing
+├── run_wevibe.ps1          # Restarts the bot after an unexpected process exit
+├── logs/                   # Rotating runtime logs (wevibe.log)
 ├── cogs/
 │   ├── __init__.py
 │   ├── news.py             # RSS scraper, deduplication, 4-channel tasks, /news force-post
@@ -164,6 +166,8 @@ CHANNEL_AI_NEWS=123456789012345678
 CHANNEL_NEWS=123456789012345678
 CHANNEL_POLLS=123456789012345678
 CHANNEL_STORY=123456789012345678
+POLL_PING_ROLE_ID=123456789012345678  # Optional role ping for new polls
+STORY_PING_ROLE_ID=123456789012345678  # Optional role ping for story start/end
 
 # Optional: Daily poll hour (UTC 0-23, default 14)
 POLL_POST_HOUR_UTC=14
@@ -180,6 +184,8 @@ python tests/test_wevibe.py
 ```bash
 python main.py
 ```
+
+For automatic process restarts after an unexpected exit, run `./run_wevibe.ps1` in PowerShell. Runtime logs are written to `logs/wevibe.log` with rotation.
 
 On launch:
 - The bot initializes the SQLite database (`data/wevibe.db`).

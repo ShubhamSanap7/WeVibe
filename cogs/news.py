@@ -342,6 +342,50 @@ class NewsCog(commands.Cog, name="News"):
             except Exception as e:
                 logger.error("Error in research_task: %s", e)
 
+    async def _restart_loop(self, loop: tasks.Loop, name: str):
+        if loop.is_being_cancelled() or self.bot.is_closed():
+            return
+        logger.warning("Scheduled loop %s stopped; restarting it in 5 seconds.", name)
+        await asyncio.sleep(5)
+        if not loop.is_being_cancelled() and not loop.is_running() and not self.bot.is_closed():
+            try:
+                loop.start()
+                logger.info("Restarted scheduled loop %s.", name)
+            except Exception:
+                logger.exception("Failed to restart scheduled loop %s.", name)
+
+    @breaking_task.error
+    async def breaking_task_error(self, error: Exception):
+        logger.exception("Unhandled error in breaking_task: %s", error)
+
+    @ai_news_task.error
+    async def ai_news_task_error(self, error: Exception):
+        logger.exception("Unhandled error in ai_news_task: %s", error)
+
+    @tech_news_task.error
+    async def tech_news_task_error(self, error: Exception):
+        logger.exception("Unhandled error in tech_news_task: %s", error)
+
+    @research_task.error
+    async def research_task_error(self, error: Exception):
+        logger.exception("Unhandled error in research_task: %s", error)
+
+    @breaking_task.after_loop
+    async def breaking_task_after_loop(self):
+        asyncio.create_task(self._restart_loop(self.breaking_task, "breaking_task"))
+
+    @ai_news_task.after_loop
+    async def ai_news_task_after_loop(self):
+        asyncio.create_task(self._restart_loop(self.ai_news_task, "ai_news_task"))
+
+    @tech_news_task.after_loop
+    async def tech_news_task_after_loop(self):
+        asyncio.create_task(self._restart_loop(self.tech_news_task, "tech_news_task"))
+
+    @research_task.after_loop
+    async def research_task_after_loop(self):
+        asyncio.create_task(self._restart_loop(self.research_task, "research_task"))
+
     @breaking_task.before_loop
     @ai_news_task.before_loop
     @tech_news_task.before_loop

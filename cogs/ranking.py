@@ -322,7 +322,10 @@ class RankingCog(commands.Cog, name="Ranking"):
         # Register persistent views for active rankings on startup
         active_rankings = await self.db.get_active_rankings()
         for r in active_rankings:
-            self.bot.add_view(RankLeaderboardView(rank_id=r["id"], disabled=False))
+            try:
+                self.bot.add_view(RankLeaderboardView(rank_id=r["id"], disabled=False))
+            except Exception:
+                logger.exception("Failed to restore ranking view #%s", r["id"])
         logger.info("Registered %s persistent ranking views.", len(active_rankings))
 
     rank_group = app_commands.Group(

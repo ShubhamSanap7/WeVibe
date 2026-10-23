@@ -9,6 +9,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -24,13 +25,23 @@ from utils import create_embed, NotCertifiedError
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+PROJECT_ROOT = Path(__file__).resolve().parent
+LOG_DIR = PROJECT_ROOT / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.StreamHandler(sys.stdout)
+        logging.StreamHandler(sys.stdout),
+        RotatingFileHandler(
+            str(LOG_DIR / "wevibe.log"),
+            maxBytes=5 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        ),
     ]
 )
 logger = logging.getLogger("WeVibe.Main")
@@ -99,6 +110,18 @@ class WeVibeBot(commands.Bot):
             name="over the WeVibe community | /help"
         )
         await self.change_presence(status=discord.Status.online, activity=activity)
+
+    async def on_connect(self):
+        logger.info("Connected to Discord gateway.")
+
+    async def on_disconnect(self):
+        logger.warning("Disconnected from Discord gateway; discord.py will reconnect automatically.")
+
+    async def on_resumed(self):
+        logger.info("Discord gateway session resumed.")
+
+    async def on_error(self, event_method: str, *args, **kwargs):
+        logger.exception("Unhandled exception in Discord event '%s'.", event_method)
 
 
 bot = WeVibeBot()
@@ -200,7 +223,7 @@ def main():
         sys.exit(1)
 
     try:
-        bot.run(DISCORD_TOKEN)
+        bot.run(DISCORD_TOKEN, reconnect=True)
     except discord.LoginFailure:
         print("\n" + "!" * 70)
         print("ERROR: Invalid Discord Bot Token!")

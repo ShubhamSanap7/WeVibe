@@ -42,6 +42,26 @@ CHANNEL_NEWS_ID: Optional[int] = int(os.getenv("CHANNEL_NEWS")) if os.getenv("CH
 CHANNEL_POLLS_ID: Optional[int] = int(os.getenv("CHANNEL_POLLS")) if os.getenv("CHANNEL_POLLS", "").strip().isdigit() else None
 CHANNEL_STORY_ID: Optional[int] = int(os.getenv("CHANNEL_STORY")) if os.getenv("CHANNEL_STORY", "").strip().isdigit() else None
 
+# Optional role to ping when a poll is posted
+_raw_poll_ping_role_id = os.getenv("POLL_PING_ROLE_ID", "").strip()
+POLL_PING_ROLE_ID: Optional[int] = None
+if not _raw_poll_ping_role_id:
+    logger.warning("POLL_PING_ROLE_ID is empty; poll role pings are disabled.")
+elif _raw_poll_ping_role_id.isdigit():
+    POLL_PING_ROLE_ID = int(_raw_poll_ping_role_id)
+else:
+    logger.warning("Invalid POLL_PING_ROLE_ID: '%s'; poll role pings are disabled.", _raw_poll_ping_role_id)
+
+# Optional role to ping when a story starts or ends
+_raw_story_ping_role_id = os.getenv("STORY_PING_ROLE_ID", "").strip()
+STORY_PING_ROLE_ID: Optional[int] = None
+if not _raw_story_ping_role_id:
+    logger.warning("STORY_PING_ROLE_ID is empty; story role pings are disabled.")
+elif _raw_story_ping_role_id.isdigit():
+    STORY_PING_ROLE_ID = int(_raw_story_ping_role_id)
+else:
+    logger.warning("Invalid STORY_PING_ROLE_ID: '%s'; story role pings are disabled.", _raw_story_ping_role_id)
+
 # Database path
 DATABASE_PATH: str = os.getenv("DATABASE_PATH", "data/wevibe.db").strip()
 

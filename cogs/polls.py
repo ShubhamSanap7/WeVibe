@@ -5,6 +5,7 @@ live visual progress bars, 24-hour auto-close, and admin management commands.
 """
 
 import json
+import asyncio
 import logging
 import os
 import random
@@ -21,7 +22,8 @@ from config import (
     COLOR_POLL,
     COLOR_SUCCESS,
     COLOR_ERROR,
-    POLL_POST_HOUR_UTC
+    POLL_POST_HOUR_UTC,
+    POLL_PING_ROLE_ID,
 )
 
 logger = logging.getLogger("WeVibe.Polls")
@@ -188,11 +190,21 @@ class PollsCog(commands.Cog, name="Polls"):
         self.daily_poll_task.start()
         self.check_expired_polls.start()
 
+    @staticmethod
+    def _poll_ping() -> tuple[Optional[str], discord.AllowedMentions]:
+        if POLL_PING_ROLE_ID is None:
+            return None, discord.AllowedMentions.none()
+        role = discord.Object(id=POLL_PING_ROLE_ID)
+        return f"<@&{POLL_PING_ROLE_ID}>", discord.AllowedMentions(roles=[role])
+
     async def cog_load(self):
         # Re-register all active polls to ensure buttons persist after bot restarts
         active_polls = await self.db.get_active_polls()
         for p in active_polls:
-            self.bot.add_view(PollView(poll_id=p["id"], options=p["options"], disabled=False))
+            try:
+                self.bot.add_view(PollView(poll_id=p["id"], options=p["options"], disabled=False))
+            except Exception:
+                logger.exception("Failed to restore poll view #%s", p["id"])
         logger.info("Registered %s persistent poll views.", len(active_polls))
 
     async def cog_unload(self):
@@ -240,7 +252,13 @@ class PollsCog(commands.Cog, name="Polls"):
             is_closed=False
         )
 
-        msg = await channel.send(embed=embed, view=view)
+        ping_content, allowed_mentions = self._poll_ping()
+        msg = await channel.send(
+            content=ping_content,
+            embed=embed,
+            view=view,
+            allowed_mentions=allowed_mentions,
+        )
         await self.db.set_poll_message_id(poll_id, msg.id)
         self.bot.add_view(view)
         logger.info("Posted new poll #%s: '%s' in #%s", poll_id, question, channel.name)
@@ -252,70 +270,100 @@ class PollsCog(commands.Cog, name="Polls"):
     @tasks.loop(minutes=30)
     async def daily_poll_task(self):
         """Checks if it is time to post the daily poll (POLL_POST_HOUR_UTC)."""
-        now = datetime.now(timezone.utc)
-        # Check if current hour matches configured hour
-        if now.hour != POLL_POST_HOUR_UTC:
-            return
+        try:
+            now = datetime.now(timezone.utc)
+            if now.hour != POLL_POST_HOUR_UTC:
+                return
 
-        # Check if we already posted a poll today
-        today_str = now.strftime("%Y-%m-%d")
-        metadata_key = f"daily_poll_posted_{today_str}"
-        # We can check if metadata exists in bot_metadata
-        async with self.bot.db_pool_lock if hasattr(self.bot, 'db_pool_lock') else asyncio.Lock():
-            pass
+            bank = load_poll_bank()
+            if not bank:
+                return
 
-        # Check bank
-        bank = load_poll_bank()
-        if not bank:
-            return
+            used_ids = await self.db.get_all_used_poll_ids()
+            available = [p for p in bank if p["id"] not in used_ids]
 
-        used_ids = await self.db.get_all_used_poll_ids()
-        available = [p for p in bank if p["id"] not in used_ids]
+            if not available:
+                logger.info("All polls in bank have been used! Resetting used polls pool.")
+                await self.db.clear_used_polls()
+                available = bank
 
-        # Reset if bank used up
-        if not available:
-            logger.info("All polls in bank have been used! Resetting used polls pool.")
-            await self.db.clear_used_polls()
-            available = bank
-
-        chosen = random.choice(available)
-        poll_id = await self.post_poll(chosen["question"], chosen["options"])
-        if poll_id:
-            await self.db.mark_poll_used(chosen["id"])
+            chosen = random.choice(available)
+            poll_id = await self.post_poll(chosen["question"], chosen["options"])
+            if poll_id:
+                await self.db.mark_poll_used(chosen["id"])
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Unhandled error in daily_poll_task; it will continue on the next cycle.")
 
     @tasks.loop(minutes=2)
     async def check_expired_polls(self):
         """Finds expired open polls, closes them, and updates message to show final results."""
-        expired = await self.db.get_expired_open_polls()
-        for p in expired:
+        try:
+            expired = await self.db.get_expired_open_polls()
+            for p in expired:
+                try:
+                    channel = self.bot.get_channel(p["channel_id"])
+                    if not channel:
+                        channel = await self.bot.fetch_channel(p["channel_id"])
+
+                    msg = await channel.fetch_message(p["message_id"])
+
+                    votes = await self.db.get_poll_votes(p["id"])
+                    total_voters = await self.db.get_poll_total_voters(p["id"])
+
+                    closed_embed = build_poll_embed(
+                        poll_id=p["id"],
+                        question=p["question"],
+                        options=p["options"],
+                        votes=votes,
+                        total_voters=total_voters,
+                        expires_at_iso=p["expires_at"],
+                        is_closed=True
+                    )
+
+                    disabled_view = PollView(poll_id=p["id"], options=p["options"], disabled=True)
+                    await msg.edit(embed=closed_embed, view=disabled_view)
+                    await self.db.close_poll(p["id"])
+                    logger.info("Closed expired poll #%s ('%s')", p["id"], p["question"])
+                except Exception:
+                    logger.exception("Failed to close expired poll #%s", p["id"])
+                    try:
+                        await self.db.close_poll(p["id"])
+                    except Exception:
+                        logger.exception("Failed to mark expired poll #%s closed", p["id"])
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Unhandled error in check_expired_polls; it will continue on the next cycle.")
+
+    async def _restart_loop(self, loop: tasks.Loop, name: str):
+        if loop.is_being_cancelled() or self.bot.is_closed():
+            return
+        logger.warning("Scheduled loop %s stopped; restarting it in 5 seconds.", name)
+        await asyncio.sleep(5)
+        if not loop.is_being_cancelled() and not loop.is_running() and not self.bot.is_closed():
             try:
-                channel = self.bot.get_channel(p["channel_id"])
-                if not channel:
-                    channel = await self.bot.fetch_channel(p["channel_id"])
+                loop.start()
+                logger.info("Restarted scheduled loop %s.", name)
+            except Exception:
+                logger.exception("Failed to restart scheduled loop %s.", name)
 
-                msg = await channel.fetch_message(p["message_id"])
+    @daily_poll_task.error
+    async def daily_poll_task_error(self, error: Exception):
+        logger.exception("Unhandled error in daily_poll_task: %s", error)
 
-                votes = await self.db.get_poll_votes(p["id"])
-                total_voters = await self.db.get_poll_total_voters(p["id"])
+    @check_expired_polls.error
+    async def check_expired_polls_error(self, error: Exception):
+        logger.exception("Unhandled error in check_expired_polls: %s", error)
 
-                closed_embed = build_poll_embed(
-                    poll_id=p["id"],
-                    question=p["question"],
-                    options=p["options"],
-                    votes=votes,
-                    total_voters=total_voters,
-                    expires_at_iso=p["expires_at"],
-                    is_closed=True
-                )
+    @daily_poll_task.after_loop
+    async def daily_poll_task_after_loop(self):
+        asyncio.create_task(self._restart_loop(self.daily_poll_task, "daily_poll_task"))
 
-                disabled_view = PollView(poll_id=p["id"], options=p["options"], disabled=True)
-                await msg.edit(embed=closed_embed, view=disabled_view)
-                await self.db.close_poll(p["id"])
-                logger.info("Closed expired poll #%s ('%s')", p["id"], p["question"])
-            except Exception as e:
-                logger.error("Failed to close expired poll #%s: %s", p["id"], e)
-                # Ensure it doesn't get stuck in open state if message was deleted
-                await self.db.close_poll(p["id"])
+    @check_expired_polls.after_loop
+    async def check_expired_polls_after_loop(self):
+        asyncio.create_task(self._restart_loop(self.check_expired_polls, "check_expired_polls"))
 
     @daily_poll_task.before_loop
     @check_expired_polls.before_loop

@@ -28,7 +28,8 @@ from config import (
     STORY_MIN_WORDS,
     STORY_MAX_WORDS,
     STORY_STARTERS,
-    FOOTER_TEXT
+    FOOTER_TEXT,
+    STORY_PING_ROLE_ID,
 )
 
 logger = logging.getLogger("WeVibe.Story")
@@ -38,6 +39,30 @@ class StoryCog(commands.Cog, name="Story"):
     def __init__(self, bot: commands.Bot, db: Database):
         self.bot = bot
         self.db = db
+
+    async def cog_load(self):
+        if not CHANNEL_STORY_ID:
+            return
+        try:
+            active_story = await self.db.get_active_story(CHANNEL_STORY_ID)
+            if active_story:
+                logger.info(
+                    "Resumed active Story #%s from SQLite (%s/%s words).",
+                    active_story["id"],
+                    active_story["current_word_count"],
+                    active_story["target_length"],
+                )
+            else:
+                logger.info("No active story to resume.")
+        except Exception:
+            logger.exception("Failed to restore active story state from SQLite.")
+
+    @staticmethod
+    def _story_ping() -> tuple[Optional[str], discord.AllowedMentions]:
+        if STORY_PING_ROLE_ID is None:
+            return None, discord.AllowedMentions.none()
+        role = discord.Object(id=STORY_PING_ROLE_ID)
+        return f"<@&{STORY_PING_ROLE_ID}>", discord.AllowedMentions(roles=[role])
 
     async def finish_story(self, story: Dict[str, Any], channel: discord.TextChannel, status: str = "completed"):
         """Finishes the story, posts the complete narrative embed, and marks it ended. Does NOT start a new one."""
@@ -68,7 +93,8 @@ class StoryCog(commands.Cog, name="Story"):
         if contrib_lines:
             embed.add_field(name="Top Contributors", value="\n".join(contrib_lines), inline=False)
 
-        await channel.send(embed=embed)
+        ping_content, allowed_mentions = self._story_ping()
+        await channel.send(content=ping_content, embed=embed, allowed_mentions=allowed_mentions)
         logger.info("Finished Story #%s (%s words). Awaiting manual /story start.", story_id, len(words_list))
 
     # =========================================================================
@@ -198,7 +224,8 @@ class StoryCog(commands.Cog, name="Story"):
             color=COLOR_STORY
         )
 
-        await channel.send(embed=embed)
+        ping_content, allowed_mentions = self._story_ping()
+        await channel.send(content=ping_content, embed=embed, allowed_mentions=allowed_mentions)
         await interaction.followup.send(
             f"✅ Story `#{story_id}` started in <#{target_channel_id}> with starter word **{starter_word}**.",
             ephemeral=True
