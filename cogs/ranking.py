@@ -1,7 +1,7 @@
 """
 WeVibe Discord Bot - Interactive Top 3 Ranking Cog
 Allows admins to create ranked leaderboards (2 to 10 options).
-Certified users rank their Top 3 via an ephemeral UI (3 dropdowns + submit button).
+Everyone can rank their Top 3 via an ephemeral UI (3 dropdowns + submit button).
 Points: 1st = 3 pts, 2nd = 2 pts, 3rd = 1 pt.
 Updates live after every vote with progress bars and tie-breaking by 1st-place count.
 Persistent across bot restarts.
@@ -16,9 +16,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from database import Database
-from utils import create_embed, make_progress_bar, get_rank_badge
+from utils import create_embed, make_progress_bar, get_rank_badge, is_certified
 from config import COLOR_RANK, COLOR_SUCCESS, COLOR_ERROR
-from cogs.access import verify_user_certified
 
 logger = logging.getLogger("WeVibe.Ranking")
 
@@ -281,11 +280,7 @@ class RankLeaderboardButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         db: Database = interaction.client.db
 
-        # 1. Access Check (Certified users only)
-        if not await verify_user_certified(db, interaction):
-            return
-
-        # 2. Check if ranking is closed
+        # 1. Check if ranking is closed
         rank = await db.get_ranking(self.rank_id)
         if not rank or rank["is_closed"]:
             await interaction.response.send_message("This ranking is closed.", ephemeral=True)
@@ -332,8 +327,7 @@ class RankingCog(commands.Cog, name="Ranking"):
 
     rank_group = app_commands.Group(
         name="rank",
-        description="Community Top 3 ranking and leaderboard commands.",
-        default_permissions=discord.Permissions(administrator=True)
+        description="Community Top 3 ranking and leaderboard commands."
     )
 
     @rank_group.command(name="create", description="Create a new Top 3 ranking leaderboard.")
@@ -341,12 +335,9 @@ class RankingCog(commands.Cog, name="Ranking"):
         title="Title of the ranking (e.g. Best AI Code Editors 2026)",
         options="Comma-separated list of 2 to 10 options (e.g. Cursor, Copilot, Windsurf, Claude Code)"
     )
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def rank_create(self, interaction: discord.Interaction, title: str, options: str):
-        """Admin command to create a new ranking."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """Create a new ranking (certified users only)."""
 
         parsed_options = [opt.strip() for opt in options.split(",") if opt.strip()]
 
@@ -394,12 +385,9 @@ class RankingCog(commands.Cog, name="Ranking"):
 
     @rank_group.command(name="close", description="Close an active ranking, freeze the leaderboard, and announce the winner.")
     @app_commands.describe(rank_id="ID of the ranking to close")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def rank_close(self, interaction: discord.Interaction, rank_id: int):
-        """Admin command to freeze and announce a ranking winner."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """Close a ranking (certified users only)."""
 
         rank = await self.db.get_ranking(rank_id)
         if not rank:
@@ -447,12 +435,9 @@ class RankingCog(commands.Cog, name="Ranking"):
             await interaction.followup.send(f"Ranking `#{rank_id}` closed in database, but failed to edit message: {e}", ephemeral=True)
 
     @rank_group.command(name="list", description="List active and recent rankings.")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def rank_list(self, interaction: discord.Interaction):
-        """Admin command to list rankings."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """List rankings (certified users only)."""
 
         rankings = await self.db.get_all_rankings(limit=15)
         if not rankings:

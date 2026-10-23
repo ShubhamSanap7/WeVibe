@@ -3,7 +3,7 @@ WeVibe Discord Bot - One-Word Story (#one-word-story) Cog (Manual Admin Control)
 Stories only run after an admin executes /story start.
 When no story is active, the bot completely ignores all messages in #one-word-story.
 When a story is active:
-- Certified users only (unauthorized gets ephemeral-style auto-deleting notice: "You don't have access to this bot.")
+  - Everyone may participate while a story is active
 - Exactly one word per message (attached punctuation allowed)
 - No user can send two messages in a row
 - Automatic completion between 40 and 80 words with a rich compilation embed
@@ -19,7 +19,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from database import Database
-from utils import create_embed, format_story_text
+from utils import create_embed, format_story_text, is_certified
 from config import (
     CHANNEL_STORY_ID,
     COLOR_STORY,
@@ -111,12 +111,6 @@ class StoryCog(commands.Cog, name="Story"):
                 except Exception:
                     pass
 
-        # 1. Access Check (Certified users only)
-        is_cert = await self.db.is_certified(message.author.id)
-        if not is_cert:
-            await reject_message("You don't have access to this bot.")
-            return
-
         raw_content = message.content.strip()
 
         # 2. Check for attachments or embeds only
@@ -155,17 +149,13 @@ class StoryCog(commands.Cog, name="Story"):
     # =========================================================================
     story_group = app_commands.Group(
         name="story",
-        description="One-word story management commands (Administrator only).",
-        default_permissions=discord.Permissions(administrator=True)
+        description="One-word story management commands."
     )
 
     @story_group.command(name="start", description="Start a new one-word story session.")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def story_start(self, interaction: discord.Interaction):
-        """Admin command to start a new story."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """Start a new story (certified users only)."""
 
         target_channel_id = CHANNEL_STORY_ID or interaction.channel_id
         active_story = await self.db.get_active_story(target_channel_id)
@@ -200,7 +190,7 @@ class StoryCog(commands.Cog, name="Story"):
                 f"The first word is:\n\n"
                 f"# **{starter_word}**\n\n"
                 f"**Rules:**\n"
-                f"• Certified users only\n"
+                f"• Everyone may participate\n"
                 f"• Send exactly **one word** per message (punctuation attached is allowed)\n"
                 f"• You cannot post two words in a row!\n"
                 f"• Story ends automatically when it reaches its mystery length."
@@ -216,12 +206,9 @@ class StoryCog(commands.Cog, name="Story"):
         logger.info("Admin %s started Story #%s (starter: '%s', target: %d words)", interaction.user, story_id, starter_word, target_length)
 
     @story_group.command(name="skip", description="End the active story early and post its compiled text.")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def story_skip(self, interaction: discord.Interaction):
-        """Admin command to skip and finalize active story."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """End the active story early (certified users only)."""
 
         target_channel_id = CHANNEL_STORY_ID or interaction.channel_id
         story = await self.db.get_active_story(target_channel_id)
@@ -238,12 +225,9 @@ class StoryCog(commands.Cog, name="Story"):
         await interaction.followup.send(f"✅ Story `#{story['id']}` was ended and summarized.", ephemeral=True)
 
     @story_group.command(name="stop", description="Cancel the active story without posting it.")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def story_stop(self, interaction: discord.Interaction):
-        """Admin command to cancel active story cleanly."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """Cancel the active story without posting it (certified users only)."""
 
         target_channel_id = CHANNEL_STORY_ID or interaction.channel_id
         story = await self.db.get_active_story(target_channel_id)
@@ -252,21 +236,6 @@ class StoryCog(commands.Cog, name="Story"):
             return
 
         await self.db.complete_story(story["id"], status="cancelled")
-
-        channel = self.bot.get_channel(story["channel_id"])
-        if not channel:
-            try:
-                channel = await self.bot.fetch_channel(story["channel_id"])
-            except Exception:
-                pass
-
-        if channel:
-            embed = create_embed(
-                title="🛑 Story Stopped",
-                description="The active story has been cancelled by an administrator.\n\n*Use `/story start` to begin a new story.*",
-                color=COLOR_ERROR
-            )
-            await channel.send(embed=embed)
 
         await interaction.response.send_message(f"✅ Story `#{story['id']}` has been stopped.", ephemeral=True)
         logger.info("Admin %s stopped Story #%s", interaction.user, story["id"])

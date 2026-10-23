@@ -7,9 +7,30 @@ import re
 from datetime import datetime, timezone
 from typing import Optional, List
 import discord
+from discord import app_commands
 from bs4 import BeautifulSoup
 
-from config import COLOR_BRAND, FOOTER_TEXT, FOOTER_ICON_URL
+from config import COLOR_BRAND, FOOTER_TEXT, FOOTER_ICON_URL, CERTIFIED_USER_IDS
+
+
+class NotCertifiedError(app_commands.CheckFailure):
+    """Raised when a non-certified user tries to execute a certified-only slash command."""
+    def __init__(self, message: str = "You don't have permission to use this command."):
+        super().__init__(message)
+
+
+def is_certified():
+    """
+    Reusable app_commands check decorator.
+    Passes only if interaction.user.id is in CERTIFIED_USER_IDS.
+    Raises NotCertifiedError if unauthorized.
+    """
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if interaction.user.id in CERTIFIED_USER_IDS:
+            return True
+        raise NotCertifiedError("You don't have permission to use this command.")
+
+    return app_commands.check(predicate)
 
 
 def create_embed(

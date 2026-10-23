@@ -45,14 +45,6 @@ async def test_db():
     db = database.Database(test_db_path)
     await db.init()
 
-    # Access
-    await db.add_certified_user(123456789, "TestUser#0001", 987654321)
-    assert await db.is_certified(123456789) is True
-    assert await db.is_certified(999999999) is False
-    users = await db.get_all_certified_users()
-    assert len(users) == 1
-    print("✓ Access control tested")
-
     # News Deduplication
     url_hash = "abc123hash"
     assert await db.is_news_posted(url_hash) is False

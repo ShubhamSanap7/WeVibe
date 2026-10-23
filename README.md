@@ -8,14 +8,10 @@ WeVibe powers the **WeVibe** server with automated tech and AI news feeds, daily
 
 ## 🚀 Key Features
 
-### 🛡️ Access Control & Certified Users
-- Interactive features (poll voting, top-3 ranking, and one-word storytelling) are restricted to **certified users**.
-- Anyone can read the automated news feeds.
-- Non-certified users receive an ephemeral notice: *"You don't have access to this bot."* (Never replied publicly).
-- **Admin Commands** (Requires Administrator permission):
-  - `/certify add @user`: Grants certified access to a server member.
-  - `/certify remove @user`: Revokes certified access.
-  - `/certify list`: Displays all certified members.
+### 🛡️ Access Control
+- Put comma-separated Discord user IDs in `CERTIFIED_USER_IDS` in `.env` for certified-only management commands.
+- Everyone can vote in polls and rankings and participate in an active one-word story.
+- Certified-only commands reply ephemerally with `You don't have permission to use this command.` when used by another user.
 
 ---
 
@@ -33,7 +29,7 @@ Feeds are monitored continuously and posted with rich branding embeds, category 
 | **`#ai-news`** | 1 hour | Max 3/cycle | Dedicated AI news (OpenAI, Anthropic, Google AI, Meta AI, Verge AI, TechCrunch AI) with strict keyword filtering. |
 | **`#news`** | 2 hours | Max 4/cycle | Dev, Cybersecurity, Hardware, Launches, Gaming Tech (HN, TechCrunch, Verge, Ars Technica, BleepingComputer, GitHub Blog, Dev.to). |
 
-- **Admin Command**:
+- **Certified-only command**:
   - `/news force-post [channel_type]`: Trigger a manual check and post cycle immediately.
 
 ---
@@ -42,11 +38,11 @@ Feeds are monitored continuously and posted with rich branding embeds, category 
 - **Poll Bank**: Includes **105+ curated questions** in `data/polls.json` covering AI, Dev, Frameworks, Cloud, Career, and tech debates.
 - **Daily Automated Schedule**: Posts a new random poll daily at a configurable UTC hour (`POLL_POST_HOUR_UTC`).
 - **No Repeats**: Tracks used polls in SQLite and only resets once the entire bank has been cycled.
-- **Live Progress Bars**: Real-time visual bars (e.g. `▰▰▰▰▰▱▱▱▱▱ 50%`) updating automatically whenever a certified user clicks a button.
-- **Changeable Votes**: Certified users can change their vote anytime before the 24-hour mark.
+- **Live Progress Bars**: Real-time visual bars (e.g. `▰▰▰▰▰▱▱▱▱▱ 50%`) updating automatically whenever someone clicks a button.
+- **Changeable Votes**: Everyone can change their vote anytime before the 24-hour mark.
 - **24-Hour Auto-Close**: Closes after 24 hours, marks the winner with 🏆, and disables buttons.
 - **Persistent Across Restarts**: Dynamic Discord UI views resume immediately after bot restarts.
-- **Admin Commands**:
+- **Certified-only management commands**:
   - `/poll post-now [poll_id]`: Post a poll immediately.
   - `/poll add question:"..." option1:"..." option2:"..." [option3] [option4]`: Add a custom question to the bank.
   - `/poll list`: View bank statistics and active polls.
@@ -54,8 +50,8 @@ Feeds are monitored continuously and posted with rich branding embeds, category 
 ---
 
 ### 🏆 Interactive Top 3 Ranking (`#rankings`)
-- Allows admins to create live ranking leaderboards with 2 to 10 options.
-- **Ephemeral Selection UI**: When certified users click `🗳️ Cast / Change Your Top 3 Vote`, the bot responds with an ephemeral view containing **three dropdown menus** (🥇 1st Choice, 🥈 2nd Choice, 🥉 3rd Choice) and a **Submit** button.
+- Certified users create live ranking leaderboards with 2 to 10 options.
+- **Ephemeral Selection UI**: Anyone can click `🗳️ Cast / Change Your Top 3 Vote` to get an ephemeral view containing **three dropdown menus** and a **Submit** button.
 - **Scoring**:
   - 🥇 1st Place = **3 points**
   - 🥈 2nd Place = **2 points**
@@ -63,7 +59,7 @@ Feeds are monitored continuously and posted with rich branding embeds, category 
 - **Tie-Breaker**: Ties are broken by the highest number of 1st-place votes (`(X × 1st)`).
 - **Validation**: Strict validation prevents selecting the same option multiple times.
 - **Live Leaderboard**: Embed updates live with rank badges (`🥇`, `🥈`, `🥉`, `4.`, `5.`), points, progress bars, and total voters.
-- **Admin Commands**:
+- **Certified-only management commands**:
   - `/rank create title:"..." options:"A, B, C, D, E"`: Create a new ranking leaderboard.
   - `/rank close rank_id:N`: Freeze leaderboard, announce winner, and disable votes.
   - `/rank list`: View active and past rankings.
@@ -75,13 +71,13 @@ Collaborative storytelling engine running directly in Discord with manual admini
 - **Manual Start**: The bot does **not** start stories on its own (neither on bot startup nor after a story concludes). A story only runs when an admin uses `/story start`.
 - **Idle State**: When no story is running, the bot completely ignores all messages in `#one-word-story` (no deletions, no rule enforcement).
 - **Active Story Rules**:
-  1. Certified users only.
+  1. Everyone may participate.
   2. Exactly **one word** per message (attached punctuation like `hello!`, `"wait,` is allowed).
   3. No back-to-back words (a user cannot post twice in a row).
   4. Invalid messages are deleted immediately with a 5-second auto-deleting explanation notice (or DM fallback).
 - **Mystery Length**: Stories automatically conclude between **40 and 80 words** (random target hidden from users).
 - **Story Completion**: At the target length, compiles the tale into a formatted book embed with top contributors and word counts, then marks the story as ended and stays idle until the next `/story start`.
-- **Admin Commands** (Administrator permission required):
+- **Certified-only commands**:
   - `/story start`: Start a new story session with a random starter word and hidden target length.
   - `/story skip`: End the active story early and post its compiled text.
   - `/story stop`: Cancel the active story without posting the narrative.
@@ -101,7 +97,6 @@ WeVibe/
 ├── main.py                 # Bot entrypoint, gateway setup, slash command syncing
 ├── cogs/
 │   ├── __init__.py
-│   ├── access.py           # /certify commands and permission checks
 │   ├── news.py             # RSS scraper, deduplication, 4-channel tasks, /news force-post
 │   ├── polls.py            # Daily polls, 24h timer, live result bars, button views
 │   ├── ranking.py          # Top 3 ranking, ephemeral 3-dropdowns UI, live leaderboard
@@ -160,6 +155,7 @@ Open `.env` and fill in your Discord IDs:
 ```ini
 DISCORD_TOKEN=your_actual_bot_token_here
 GUILD_ID=your_server_id_here
+CERTIFIED_USER_IDS=123456789012345678,987654321098765432
 
 # Channel IDs
 CHANNEL_BREAKING=123456789012345678
@@ -187,7 +183,7 @@ python main.py
 
 On launch:
 - The bot initializes the SQLite database (`data/wevibe.db`).
-- Loads all cogs (`access`, `news`, `polls`, `ranking`, `story`).
+- Loads all cogs (`news`, `polls`, `ranking`, `story`).
 - Synchronizes slash commands directly to your `GUILD_ID` for instant availability.
 - Begins scheduled background tasks for news feeds and daily polls.
 
@@ -197,19 +193,18 @@ On launch:
 
 | Command | Permission | Description |
 | :--- | :--- | :--- |
-| `/certify add @user` | Administrator | Certify a member to vote and participate in stories |
-| `/certify remove @user` | Administrator | Revoke certification |
-| `/certify list` | Administrator | List all certified users |
-| `/news force-post [channel]` | Administrator | Manually trigger a news check and post cycle |
-| `/poll post-now [poll_id]` | Administrator | Immediately post a poll from the bank |
-| `/poll add ...` | Administrator | Add a custom poll question to the 100+ bank |
-| `/poll list` | Administrator | View bank statistics and active polls |
-| `/rank create title:... options:...` | Administrator | Create a new Top 3 ranking leaderboard |
-| `/rank close rank_id:N` | Administrator | Close ranking and announce winner |
-| `/rank list` | Administrator | List active and past rankings |
-| `/story start` | Administrator | Start a new one-word story session |
-| `/story skip` | Administrator | End active story early and post completed tale |
-| `/story stop` | Administrator | Cancel the active story without posting |
+| `/help` | Everyone | Show commands and feature guidance |
+| `/info` | Everyone | Show bot statistics and runtime information |
+| `/news force-post [channel]` | Certified users | Manually trigger a news check and post cycle |
+| `/poll post-now [poll_id]` | Certified users | Immediately post a poll from the bank |
+| `/poll add ...` | Certified users | Add a custom poll question to the bank |
+| `/poll list` | Certified users | View bank statistics and active polls |
+| `/rank create title:... options:...` | Certified users | Create a new Top 3 ranking leaderboard |
+| `/rank close rank_id:N` | Certified users | Close ranking and announce winner |
+| `/rank list` | Certified users | List active and past rankings |
+| `/story start` | Certified users | Start a new one-word story session |
+| `/story skip` | Certified users | End active story early and post completed tale |
+| `/story stop` | Certified users | Cancel the active story without posting |
 
 ---
 

@@ -7,12 +7,18 @@ guild slash command synchronization, and global error handling.
 import asyncio
 import logging
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from config import DISCORD_TOKEN, GUILD_ID, DATABASE_PATH, FOOTER_TEXT
+from config import (
+    DISCORD_TOKEN, GUILD_ID, DATABASE_PATH, FOOTER_TEXT,
+    BREAKING_CONFIG, RESEARCH_CONFIG, AI_NEWS_CONFIG, TECH_NEWS_CONFIG,
+)
 from database import Database
+from utils import create_embed, NotCertifiedError
 
 # Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, "reconfigure"):
@@ -45,6 +51,7 @@ class WeVibeBot(commands.Bot):
         )
 
         self.db = Database(DATABASE_PATH)
+        self.started_at = datetime.now(timezone.utc)
 
     async def setup_hook(self):
         """Asynchronous initialization executed before login."""
@@ -53,7 +60,6 @@ class WeVibeBot(commands.Bot):
 
         # Load all feature cogs
         cogs = [
-            "cogs.access",
             "cogs.news",
             "cogs.polls",
             "cogs.ranking",
@@ -90,12 +96,70 @@ class WeVibeBot(commands.Bot):
 
         activity = discord.Activity(
             type=discord.ActivityType.watching,
-            name="over WeVibe community | /certify, /news, /poll, /rank, /story"
+            name="over the WeVibe community | /help"
         )
         await self.change_presence(status=discord.Status.online, activity=activity)
 
 
 bot = WeVibeBot()
+
+
+@bot.tree.command(name="help", description="Show WeVibe commands and how its features work.")
+async def help_command(interaction: discord.Interaction):
+    embed = create_embed(
+        title="📚 WeVibe Help",
+        description=(
+            "News is posted automatically to the configured news channels. Polls let everyone vote once "
+            "and change their vote; rankings collect a Top 3 from everyone; the story accepts one word at a "
+            "time while active, with no back-to-back messages."
+        )
+    )
+    embed.add_field(
+        name="Everyone's commands",
+        value=(
+            "`/help` — Show this guide\n"
+            "`/info` — Show bot status and statistics\n"
+            "Poll and ranking buttons — Vote or update your vote\n"
+            "Story channel — Add one word while a story is active"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="Certified-only commands",
+        value=(
+            "`/news force-post` — Run a news feed check\n"
+            "`/poll post-now`, `/poll add`, `/poll list` — Manage polls\n"
+            "`/rank create`, `/rank close`, `/rank list` — Manage rankings\n"
+            "`/story start`, `/story skip`, `/story stop` — Manage the one-word story"
+        ),
+        inline=False,
+    )
+    embed.add_field(name="Channels", value="News channels receive feeds; the polls channel receives polls; the story channel hosts the active one-word story.", inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="info", description="Show WeVibe bot information and live statistics.")
+async def info_command(interaction: discord.Interaction):
+    configs = [BREAKING_CONFIG, RESEARCH_CONFIG, AI_NEWS_CONFIG, TECH_NEWS_CONFIG]
+    news_sources = sum(len(c.sources) for c in configs)
+    news_channels = sum(c.channel_id is not None for c in configs)
+    poll_bank_path = Path(__file__).parent / "data" / "polls.json"
+    try:
+        import json
+        with poll_bank_path.open(encoding="utf-8") as poll_file:
+            poll_count = len(json.load(poll_file))
+    except (OSError, ValueError):
+        poll_count = 0
+    rankings = await bot.db.get_total_rankings_count()
+    stories = await bot.db.get_completed_stories_count()
+    uptime = datetime.now(timezone.utc) - bot.started_at
+    uptime_text = str(uptime).split(".")[0]
+    intervals = "\n".join(f"#{c.channel_key}: every {c.interval_minutes} minutes" for c in configs)
+    embed = create_embed(title="ℹ️ WeVibe Info", description="A community bot for tech news, polls, rankings, and collaborative one-word stories.")
+    embed.add_field(name="News", value=f"{news_sources} sources across {news_channels} configured channels\n{intervals}", inline=False)
+    embed.add_field(name="Content", value=f"Polls in bank: **{poll_count}**\nRankings created: **{rankings}**\nStories completed: **{stories}**", inline=False)
+    embed.add_field(name="Runtime", value=f"Uptime: **{uptime_text}**\nPython: **{sys.version.split()[0]}**\ndiscord.py: **{discord.__version__}**\nLatency: **{round(bot.latency * 1000)} ms**", inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # ==============================================================================
@@ -104,8 +168,10 @@ bot = WeVibeBot()
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     """Handles unhandled slash command errors gracefully."""
-    if isinstance(error, app_commands.errors.MissingPermissions):
-        msg = "❌ You don't have permission to use this command."
+    if isinstance(error, NotCertifiedError):
+        msg = "You don't have permission to use this command."
+    elif isinstance(error, app_commands.errors.MissingPermissions):
+        msg = "You don't have permission to use this command."
     elif isinstance(error, app_commands.errors.BotMissingPermissions):
         msg = f"❌ The bot is missing required permissions: {', '.join(error.missing_permissions)}"
     elif isinstance(error, app_commands.errors.CommandOnCooldown):

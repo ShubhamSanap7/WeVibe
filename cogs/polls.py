@@ -15,7 +15,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from database import Database
-from utils import create_embed, make_progress_bar
+from utils import create_embed, make_progress_bar, is_certified
 from config import (
     CHANNEL_POLLS_ID,
     COLOR_POLL,
@@ -23,7 +23,6 @@ from config import (
     COLOR_ERROR,
     POLL_POST_HOUR_UTC
 )
-from cogs.access import verify_user_certified
 
 logger = logging.getLogger("WeVibe.Polls")
 
@@ -128,10 +127,8 @@ class PollButton(discord.ui.Button):
         self.option_text = option_text
 
     async def callback(self, interaction: discord.Interaction):
-        # 1. Access Check (Certified users only)
+        # 1. Database reference
         db: Database = interaction.client.db
-        if not await verify_user_certified(db, interaction):
-            return
 
         # 2. Check if poll is closed
         poll = await db.get_poll(self.poll_id)
@@ -330,19 +327,14 @@ class PollsCog(commands.Cog, name="Polls"):
     # =========================================================================
     poll_group = app_commands.Group(
         name="poll",
-        description="Daily community poll management commands.",
-        default_permissions=discord.Permissions(administrator=True)
+        description="Daily community poll management commands."
     )
 
     @poll_group.command(name="post-now", description="Immediately post a poll from the bank or by ID.")
     @app_commands.describe(poll_id="Optional specific poll ID from the bank to post")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def poll_post_now(self, interaction: discord.Interaction, poll_id: Optional[int] = None):
-        """Admin command to post a poll immediately."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
-
+        """Post a poll immediately (Certified users only)."""
         bank = load_poll_bank()
         if not bank:
             await interaction.response.send_message("Poll bank is empty.", ephemeral=True)
@@ -385,7 +377,7 @@ class PollsCog(commands.Cog, name="Polls"):
         option4="Fourth option (optional)",
         topic="Topic tag (e.g. AI, Dev, Career)"
     )
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def poll_add(
         self,
         interaction: discord.Interaction,
@@ -396,11 +388,7 @@ class PollsCog(commands.Cog, name="Polls"):
         option4: Optional[str] = None,
         topic: Optional[str] = "Community"
     ):
-        """Admin command to add a custom poll to the bank."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
-
+        """Add a custom poll to the bank (Certified users only)."""
         options = [option1.strip(), option2.strip()]
         if option3 and option3.strip():
             options.append(option3.strip())
@@ -429,12 +417,9 @@ class PollsCog(commands.Cog, name="Polls"):
             await interaction.response.send_message("❌ Failed to save poll to bank.", ephemeral=True)
 
     @poll_group.command(name="list", description="List active polls and poll bank statistics.")
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def poll_list(self, interaction: discord.Interaction):
-        """Admin command to list poll statuses."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
+        """List poll statuses (Certified users only)."""
 
         bank = load_poll_bank()
         used_ids = await self.db.get_all_used_poll_ids()

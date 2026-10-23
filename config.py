@@ -4,18 +4,33 @@ All feed URLs, intervals, posting limits, colors, and environment settings are d
 """
 
 import os
+import logging
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 from dotenv import load_dotenv
 
 # Load .env file
 load_dotenv()
+
+logger = logging.getLogger("WeVibe.Config")
 
 # ==============================================================================
 # DISCORD & GUILD SETTINGS
 # ==============================================================================
 DISCORD_TOKEN: str = os.getenv("DISCORD_TOKEN", "").strip()
 GUILD_ID: Optional[int] = int(os.getenv("GUILD_ID")) if os.getenv("GUILD_ID", "").strip().isdigit() else None
+
+# Parse CERTIFIED_USER_IDS from comma-separated string in .env
+CERTIFIED_USER_IDS: Set[int] = set()
+_raw_certified = os.getenv("CERTIFIED_USER_IDS", "")
+for _part in _raw_certified.split(","):
+    _clean = _part.strip()
+    if not _clean:
+        continue
+    if _clean.isdigit():
+        CERTIFIED_USER_IDS.add(int(_clean))
+    else:
+        logger.warning("Invalid user ID in CERTIFIED_USER_IDS: '%s'", _clean)
 
 # ==============================================================================
 # CHANNEL IDS

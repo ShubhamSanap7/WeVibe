@@ -1,6 +1,6 @@
 """
 WeVibe Discord Bot - Asynchronous SQLite Database Layer
-Handles persistent storage for access control, news deduplication, polls, rankings, and story states.
+Handles persistent storage for news deduplication, polls, rankings, and story states.
 """
 
 import json
@@ -25,17 +25,10 @@ class Database:
             await db.execute("PRAGMA journal_mode=WAL;")
             await db.execute("PRAGMA foreign_keys=ON;")
 
-            # 1. Certified Users
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS certified_users (
-                    user_id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    added_by INTEGER,
-                    added_at TEXT NOT NULL
-                )
-            """)
+            # Remove the legacy database-backed certification system from older installs.
+            await db.execute("DROP TABLE IF EXISTS certified_users")
 
-            # 2. News Deduplication
+            # 1. News Deduplication
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS posted_news (
                     url_hash TEXT PRIMARY KEY,
@@ -152,47 +145,19 @@ class Database:
             await db.commit()
 
     # =========================================================================
-    # CERTIFIED USERS
+    # SYSTEM STATS HELPERS
     # =========================================================================
-    async def is_certified(self, user_id: int) -> bool:
+    async def get_total_rankings_count(self) -> int:
         async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute(
-                "SELECT 1 FROM certified_users WHERE user_id = ?", (user_id,)
-            ) as cursor:
-                return (await cursor.fetchone()) is not None
+            async with db.execute("SELECT COUNT(*) FROM rankings") as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
 
-    async def add_certified_user(self, user_id: int, username: str, added_by: int) -> bool:
-        now = datetime.now(timezone.utc).isoformat()
+    async def get_completed_stories_count(self) -> int:
         async with aiosqlite.connect(self.db_path) as db:
-            try:
-                await db.execute(
-                    """
-                    INSERT INTO certified_users (user_id, username, added_by, added_at)
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(user_id) DO UPDATE SET
-                        username = excluded.username,
-                        added_by = excluded.added_by,
-                        added_at = excluded.added_at
-                    """,
-                    (user_id, username, added_by, now)
-                )
-                await db.commit()
-                return True
-            except Exception:
-                return False
-
-    async def remove_certified_user(self, user_id: int) -> bool:
-        async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute("DELETE FROM certified_users WHERE user_id = ?", (user_id,))
-            await db.commit()
-            return cursor.rowcount > 0
-
-    async def get_all_certified_users(self) -> List[Dict[str, Any]]:
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM certified_users ORDER BY added_at DESC") as cursor:
-                rows = await cursor.fetchall()
-                return [dict(r) for r in rows]
+            async with db.execute("SELECT COUNT(*) FROM stories WHERE status = 'completed'") as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
 
     # =========================================================================
     # NEWS DEDUPLICATION & LIMITS

@@ -17,7 +17,7 @@ from discord.ext import commands, tasks
 import feedparser
 
 from database import Database
-from utils import create_embed, clean_html_summary
+from utils import create_embed, clean_html_summary, is_certified
 from config import (
     BREAKING_CONFIG,
     RESEARCH_CONFIG,
@@ -354,8 +354,7 @@ class NewsCog(commands.Cog, name="News"):
     # =========================================================================
     news_group = app_commands.Group(
         name="news",
-        description="News aggregation management commands.",
-        default_permissions=discord.Permissions(administrator=True)
+        description="News aggregation management commands."
     )
 
     @news_group.command(name="force-post", description="Manually trigger a news check and post cycle.")
@@ -367,13 +366,9 @@ class NewsCog(commands.Cog, name="News"):
         app_commands.Choice(name="#ai-news", value="ai-news"),
         app_commands.Choice(name="#news (Tech)", value="news"),
     ])
-    @app_commands.default_permissions(administrator=True)
+    @is_certified()
     async def news_force_post(self, interaction: discord.Interaction, channel_type: Optional[app_commands.Choice[str]] = None):
-        """Admin command to force a manual feed cycle."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You need Administrator permissions to use this command.", ephemeral=True)
-            return
-
+        """Command to force a manual feed cycle (Certified users only)."""
         target = channel_type.value if channel_type else "all"
         await interaction.response.defer(ephemeral=True)
 
