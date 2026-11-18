@@ -20,6 +20,11 @@ WeVibe powers the **WeVibe** server with automated tech and AI news feeds, commu
 - A normal message automatically clears AFK and sends a temporary welcome-back summary.
 - AFK responses never ping users, roles, `@everyone`, or `@here`.
 
+### 🛡️ Moderation Commands
+- Moderation commands use the `?w` group: `?w kick`, `?w ban`, and `?w mute`.
+- The invoking moderator needs the matching Discord permission; Discord role hierarchy still applies.
+- Members and bot accounts can be targeted. `?w mute @member 10m reason` uses Discord timeout (maximum 28 days).
+
 ---
 
 ### 📰 Automated News System (4 Channels, Cross-Channel Deduplication)
@@ -221,6 +226,9 @@ On launch:
 | `/story stop` | Certified users | Cancel the active story without posting |
 | `?afk [reason]` | Staff role | Set your persistent AFK status |
 | `?back` | Staff role | Manually remove your AFK status |
+| `?w kick @member [reason]` | Kick Members | Kick a member or bot |
+| `?w ban @member [reason]` | Ban Members | Ban a member or bot |
+| `?w mute @member [duration] [reason]` | Moderate Members | Timeout a member or bot |
 
 ---
 

@@ -76,7 +76,8 @@ class WeVibeBot(commands.Bot):
             "cogs.polls",
             "cogs.ranking",
             "cogs.story",
-            "cogs.afk"
+            "cogs.afk",
+            "cogs.moderation"
         ]
 
         for cog in cogs:
@@ -157,6 +158,7 @@ async def help_command(interaction: discord.Interaction):
             "`/rank create`, `/rank close`, `/rank list` — Manage rankings\n"
             "`/story start`, `/story skip`, `/story stop` — Manage the one-word story\n"
             f"`{COMMAND_PREFIX}afk [reason]`, `{COMMAND_PREFIX}back` — Staff AFK status"
+            f"\n`{COMMAND_PREFIX}w kick/ban/mute` — Moderation commands"
         ),
         inline=False,
     )

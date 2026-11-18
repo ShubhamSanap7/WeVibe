@@ -24,6 +24,7 @@ import database
 from cogs.ranking import calculate_rankings_score
 from cogs.news import is_fresh_entry
 from cogs.afk import format_duration
+from cogs.moderation import parse_duration
 
 print("Config loaded. Community poll bank and storage available.")
 print(f"Breaking sources count: {len(config.BREAKING_CONFIG.sources)}")
@@ -152,6 +153,12 @@ print("\n--- Step 7: Testing AFK Duration Formatting ---")
 assert format_duration(3661) == "1 hour, 1 minute"
 assert format_duration(0) == "less than a minute"
 print("✓ AFK duration formatting verified")
+
+print("\n--- Step 8: Testing Moderation Helpers ---")
+assert parse_duration("10m").total_seconds() == 600
+assert parse_duration("2h").total_seconds() == 7200
+assert parse_duration("29d") is None
+print("✓ Moderation timeout duration parsing verified")
 
 print("\n=======================================================")
 print("ALL VERIFICATION CHECKS PASSED WITH 100% SUCCESS!")
