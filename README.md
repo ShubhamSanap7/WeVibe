@@ -1,3 +1,9 @@
+## Project at a glance
+
+A Python Discord community bot combining tech and AI news feeds, interactive polls, Top 3 ranking boards, and collaborative one-word storytelling.
+
+---
+
 # 🎵 WeVibe Discord Bot
 
 A Discord community bot built with **Python 3.11+**, **discord.py 2.x**, **aiohttp**, **feedparser**, and **aiosqlite**.
